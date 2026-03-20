@@ -53,8 +53,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 @keyframes spinR { from{transform:rotate(0deg);} to{transform:rotate(-360deg);} }
 .start-title { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:0.06em; margin-bottom:0.5rem; }
 .start-desc { color:var(--muted); font-size:0.88rem; line-height:1.6; margin-bottom:2rem; max-width:340px; margin-left:auto; margin-right:auto; }
-.play-game-btn { display:inline-flex; align-items:center; gap:10px; padding:16px 40px; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:700; border:none; border-radius:14px; cursor:pointer; letter-spacing:0.04em; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 0 30px rgba(0,245,212,0.25); }
+.play-game-btn { display:inline-flex; align-items:center; gap:10px; padding:16px 40px; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:800; border:1px solid rgba(255,255,255,0.10); border-radius:14px; cursor:pointer; letter-spacing:0.06em; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 0 30px rgba(0,245,212,0.25), inset 0 0 0 1px rgba(255,255,255,0.06); text-shadow:0 0 18px rgba(0,245,212,0.25); }
 .play-game-btn:hover { transform:scale(1.05); box-shadow:0 0 50px rgba(0,245,212,0.4); }
+.play-game-btn:active { transform:scale(0.98); box-shadow:0 0 22px rgba(0,245,212,0.28); }
 .play-game-btn,.ctrl-btn,#play-today-btn{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 
 /* COUNTDOWN */
@@ -238,7 +239,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
     <div class="start-card">
       <div class="date-pill" id="date-pill"></div>
       <div class="start-disc"><img class="start-disc-gif" src="pedro_icon.gif?v=2" alt="Music" /></div>
-      <div class="tagline"><span class="nobreak">DO YOU KNOW YOUR WUB WUBS?</span></div>
+      <div class="start-title"><span class="nobreak">Daily EDM Challenge</span></div>
       <div class="start-desc">A <span class="nobreak">30-SECOND</span> EDM SNIPPET WILL PLAY. GUESS THE ARTIST BEFORE YOUR 3 LIVES RUN OUT.</div>
       <button type="button" class="play-game-btn" id="play-today-btn">▶ &nbsp;Play Today's Drop</button>
     </div>
