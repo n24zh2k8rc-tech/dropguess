@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Drop Guess — Daily EDM Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double+Ink:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,13 +23,18 @@ body::before { content:''; position:fixed; inset:0; background-image:linear-grad
 .orb2 { width:400px; height:400px; background:rgba(0,245,212,0.08); bottom:-100px; right:-100px; animation-delay:-7s; }
 .orb3 { width:300px; height:300px; background:rgba(155,93,229,0.10); top:35%; left:25%; animation-delay:-4s; }
 @keyframes drift { from{transform:translate(0,0) scale(1);} to{transform:translate(40px,25px) scale(1.12);} }
-.wrapper { position:relative; z-index:1; width:100%; max-width:580px; padding:2rem 1.5rem 5rem; display:flex; flex-direction:column; align-items:center; gap:1.25rem; }
+.wrapper { position:relative; z-index:1; width:100%; max-width:580px; min-height:100vh; padding:2rem 1.5rem 1.25rem; display:flex; flex-direction:column; align-items:center; gap:1.25rem; }
 
 /* HEADER */
-header { text-align:center; width:100%; }
-.logo { font-family:'Bebas Neue',sans-serif; font-size:clamp(3.2rem,13vw,5.5rem); letter-spacing:0.06em; line-height:1; background:linear-gradient(135deg,var(--cyan) 0%,var(--pink) 50%,var(--yellow) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 40px rgba(0,245,212,0.25)); }
+header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-sizing:border-box; }
+.logo { font-family:'Bitcount Grid Double Ink','Roboto',sans-serif; font-weight:700; font-size:clamp(1.15rem,5.5vw + 0.85rem,5.25rem); letter-spacing:0.04em; line-height:1; white-space:nowrap; max-width:100%; margin:0 auto; display:inline-flex; align-items:center; justify-content:center; gap:0.28em; filter:drop-shadow(0 0 40px rgba(0,245,212,0.25)); }
+.logo-text { background:linear-gradient(135deg,var(--cyan) 0%,var(--pink) 50%,var(--yellow) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.logo-emoji { font-size:0.92em; line-height:1; flex-shrink:0; -webkit-text-fill-color:initial; filter:drop-shadow(0 2px 8px rgba(0,245,212,0.2)); }
 .tagline { font-size:0.75rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); margin-top:0.2rem; }
-.date-pill { display:inline-block; margin-top:0.6rem; padding:4px 14px; border:1px solid var(--border); border-radius:20px; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; }
+.footer-daily-pill { margin-top:auto; width:100%; display:flex; justify-content:center; padding-top:1rem; padding-bottom:max(0.5rem, env(safe-area-inset-bottom)); }
+.date-pill { display:inline-block; padding:4px 14px; border:1px solid var(--border); border-radius:20px; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; }
+.start-card .date-pill { margin:0 auto 1.25rem; border-color:rgba(0,245,212,0.55); color:var(--cyan); box-shadow:0 0 18px rgba(0,245,212,0.15); }
+.date-pill--daily { border-color:rgba(96,96,160,0.4); color:var(--muted); letter-spacing:0.12em; text-transform:uppercase; }
 
 /* SCREENS */
 .screen { display:none; width:100%; flex-direction:column; align-items:center; gap:1.25rem; }
@@ -83,7 +91,17 @@ header { text-align:center; width:100%; }
 .hint-img-wrap img.revealed { filter:none; }
 .hint-label { position:absolute; bottom:5px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 .hint-btn { margin-top:7px; background:none; border:1px solid var(--orange); color:var(--orange); border-radius:8px; padding:5px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer; }
-#sc-iframe { display:none; }
+/* Keep the widget loaded for audio, but visually hide it without `display:none`
+   (some browsers throttle media in display-none iframes). */
+#sc-iframe{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  left:-9999px;
+  top:-9999px;
+  pointer-events:none;
+}
 
 /* GUESS */
 .guess-zone { width:100%; }
@@ -156,6 +174,29 @@ header { text-align:center; width:100%; }
 .shake { animation:shake 0.38s ease; }
 .autocomplete-list::-webkit-scrollbar,.lb-list::-webkit-scrollbar { width:3px; }
 .autocomplete-list::-webkit-scrollbar-thumb,.lb-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* Autoplay fallback: browsers block audio until a fresh user gesture */
+.audio-start-overlay{
+  display:none; position:fixed; inset:0; z-index:100;
+  align-items:center; justify-content:center;
+  background:rgba(6,6,15,0.82); backdrop-filter:blur(6px);
+  padding:1.5rem; text-align:center;
+}
+.audio-start-overlay.visible{ display:flex; }
+.audio-start-overlay .inner{
+  max-width:340px; background:var(--card); border:1px solid var(--border);
+  border-radius:18px; padding:1.75rem 1.5rem;
+  box-shadow:0 0 40px rgba(0,245,212,0.12);
+}
+.audio-start-overlay h3{ font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:0.06em; margin-bottom:0.5rem; color:var(--cyan); }
+.audio-start-overlay p{ font-size:0.85rem; color:var(--muted); line-height:1.5; margin-bottom:1.25rem; }
+.audio-start-overlay button{
+  width:100%; padding:14px 20px; border:none; border-radius:12px; cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:1rem;
+  background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000;
+  box-shadow:0 0 24px rgba(0,245,212,0.25);
+}
+.audio-start-overlay button:hover{ transform:scale(1.02); }
 </style>
 </head>
 <body>
@@ -163,25 +204,18 @@ header { text-align:center; width:100%; }
 
 <div class="wrapper">
   <header>
-    <div class="logo">Drop Guess</div>
+    <div class="logo" role="img" aria-label="Drop Guess"><span class="logo-emoji" aria-hidden="true">🎧</span><span class="logo-text">Drop Guess</span><span class="logo-emoji" aria-hidden="true">🎵</span></div>
     <div class="tagline">Identify the artist from a 30-second drop</div>
-    <div class="date-pill" id="date-pill"></div>
   </header>
 
   <!-- START -->
   <div class="screen active" id="screen-start">
     <div class="start-card">
+      <div class="date-pill" id="date-pill"></div>
       <div class="start-disc"><div class="start-disc-inner">🎵</div></div>
       <div class="start-title">Ready to Drop?</div>
-      <div class="start-desc">A 30-second EDM snippet will play. Guess the artist before your 6 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
+      <div class="start-desc">A 30-second EDM snippet will play. Guess the artist before your 3 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
       <button class="play-game-btn" onclick="startCountdown()">▶ &nbsp;Play Today's Drop</button>
-    </div>
-    <div class="leaderboard-card">
-      <div class="lb-header">
-        <div><div class="lb-title">🏆 Leaderboard</div><div class="lb-subtitle">Today's fastest guesses</div></div>
-        <button class="lb-refresh" onclick="loadLeaderboard('lb-start-list')">↺ Refresh</button>
-      </div>
-      <div class="lb-list" id="lb-start-list"><div class="lb-loading">Loading scores...</div></div>
     </div>
   </div>
 
@@ -195,6 +229,13 @@ header { text-align:center; width:100%; }
 
   <!-- GAME -->
   <div class="screen" id="screen-game">
+    <div class="audio-start-overlay" id="audio-start-overlay" aria-hidden="true">
+      <div class="inner">
+        <h3>Tap to start audio</h3>
+        <p>Your browser blocked autoplay until you interact. Tap below to start the snippet.</p>
+        <button type="button" id="audio-start-btn">▶ Start sound</button>
+      </div>
+    </div>
     <div class="game-timer-wrap">
       <div class="game-timer-label">⏱ Your time</div>
       <div class="game-timer-val" id="game-timer-val">0:00.0</div>
@@ -207,12 +248,13 @@ header { text-align:center; width:100%; }
           <div class="waveform" id="waveform"></div>
           <div class="snippet-timer" id="snippet-timer">0:30</div>
         </div>
+        <div id="debug-soundcloud" style="display:none;margin-top:-6px;font-size:0.75rem;color:var(--muted);text-align:right;white-space:pre-line;"></div>
         <div class="controls-row">
           <button class="ctrl-btn primary" id="play-pause-btn" onclick="togglePlayPause()">⏸</button>
           <button class="ctrl-btn" onclick="replaySnippet()" title="Replay">↺</button>
           <span style="font-size:0.72rem;color:var(--muted);margin-left:4px;">Pause · Replay from start</span>
         </div>
-        <iframe id="sc-iframe" allow="autoplay"></iframe>
+        <iframe id="sc-iframe" allow="autoplay; encrypted-media"></iframe>
         <div class="hint-zone" id="hint-zone" style="display:none;">
           <div class="hint-img-wrap">
             <img id="hint-img" src="" alt="artwork hint" />
@@ -260,21 +302,28 @@ header { text-align:center; width:100%; }
       <div class="lb-list" id="lb-result-list"><div class="lb-loading">Loading scores...</div></div>
     </div>
   </div>
+  <footer class="footer-daily-pill">
+    <div class="date-pill date-pill--daily">New Challenge Daily</div>
+  </footer>
 </div>
 
 <script>
 /* ── SONGS ── */
+function makeScEmbedUrl(scUrl){
+  // SoundCloud widget accepts the track URL via the `url=` query param.
+  // `seekTo()` expects milliseconds, but embeds just need the track URL.
+  return `https://w.soundcloud.com/player/?url=${encodeURIComponent(scUrl)}&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false`;
+}
 const SONGS = [
-  {artist:"Martin Garrix",track:"Animals",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/104274938&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000060864750-3k5xg8-t500x500.jpg",scUrl:"https://soundcloud.com/martingarrix/animals-original-mix"},
-  {artist:"Avicii",track:"Levels",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/14416179&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000013430512-fnq1lh-t500x500.jpg",scUrl:"https://soundcloud.com/aviciiofficial/avicii-levels"},
-  {artist:"Skrillex",track:"Bangarang",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/65014730&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000036084436-qd1cxs-t500x500.jpg",scUrl:"https://soundcloud.com/skrillex/skrillex-bangarang-feat-sirah"},
-  {artist:"Deadmau5",track:"Strobe",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/822955&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000003513903-a2lbqh-t500x500.jpg",scUrl:"https://soundcloud.com/deadmau5/strobe"},
-  {artist:"Calvin Harris",track:"Summer",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/153966156&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000082056616-kvhlke-t500x500.jpg",scUrl:"https://soundcloud.com/calvinharris/summer"},
-  {artist:"Daft Punk",track:"Get Lucky",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/91928813&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000050758745-k1i5qg-t500x500.jpg",scUrl:"https://soundcloud.com/daftpunk/get-lucky-radio-edit"},
-  {artist:"Zedd",track:"Clarity",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/60270782&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000033648098-j2lkzv-t500x500.jpg",scUrl:"https://soundcloud.com/zedd/zedd-clarity-feat-foxes"},
-  {artist:"Tiesto",track:"Red Lights",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/168971228&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000091948825-c6mvtq-t500x500.jpg",scUrl:"https://soundcloud.com/tiesto/tiesto-red-lights"},
-  {artist:"Marshmello",track:"Alone",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/270244852&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000174671446-5vzesg-t500x500.jpg",scUrl:"https://soundcloud.com/marshmellomusic/marshmello-alone"},
-  {artist:"Kygo",track:"Firestone",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/185873761&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000101086514-lgtrqd-t500x500.jpg",scUrl:"https://soundcloud.com/kygo/kygo-firestone-feat-conrad"},
+  {artist:"Illenium",track:"Broken Ones",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"),artworkUrl:"",scUrl:"https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"},
+  {artist:"Knock2",track:"dashstar*",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/nightmoderecs/knock2-dashstar-1"),artworkUrl:"",scUrl:"https://soundcloud.com/nightmoderecs/knock2-dashstar-1"},
+  {artist:"Wax Motif",track:"Tokyo",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/confession/wax-motif-tokyo"),artworkUrl:"",scUrl:"https://soundcloud.com/confession/wax-motif-tokyo"},
+  {artist:"CrankDAT",track:"Trap Queen (Re-Crank)",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/crankdatmusic/trapqueen"),artworkUrl:"",scUrl:"https://soundcloud.com/crankdatmusic/trapqueen"},
+  {artist:"ISOxo",track:"dontstopme!",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/isoxo/dontstopme"),artworkUrl:"",scUrl:"https://soundcloud.com/isoxo/dontstopme"},
+  {artist:"Levity",track:"Flip It",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/levity_music/flipit"),artworkUrl:"",scUrl:"https://soundcloud.com/levity_music/flipit"},
+  {artist:"Slander",track:"Welcome To The Fire",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/slanderofficial/welcometothefire"),artworkUrl:"",scUrl:"https://soundcloud.com/slanderofficial/welcometothefire"},
+  {artist:"Ganja White Night",track:"Mr Nice",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/ganjawhitenight/ganja-white-night-mr-nice"),artworkUrl:"",scUrl:"https://soundcloud.com/ganjawhitenight/ganja-white-night-mr-nice"},
+  {artist:"John Summit",track:"Gas Pedal Remix",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/johnsummit/john-summit-subtronics-tape-b-gas-pedal-ft-sage-the-gemini-extended-mix"),artworkUrl:"",scUrl:"https://soundcloud.com/johnsummit/john-summit-subtronics-tape-b-gas-pedal-ft-sage-the-gemini-extended-mix"},
 ];
 
 const ALL_ARTISTS = [...new Set(SONGS.map(s=>s.artist))].concat([
@@ -288,7 +337,9 @@ const ALL_ARTISTS = [...new Set(SONGS.map(s=>s.artist))].concat([
 function getTodayKey(){const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;}
 function seededIdx(seed,max){let h=(seed^0xdeadbeef)>>>0;h=Math.imul(h^h>>>16,0x45d9f3b);h=Math.imul(h^h>>>16,0x45d9f3b);h^=h>>>16;return Math.abs(h)%max;}
 const TODAY_KEY=getTodayKey();
-const todaySong=SONGS[seededIdx(parseInt(TODAY_KEY,10),SONGS.length)];
+const initialSongIdx=seededIdx(parseInt(TODAY_KEY,10),SONGS.length);
+let currentSongIdx=initialSongIdx;
+let currentSong=SONGS[currentSongIdx];
 
 /* ── LEADERBOARD ── */
 const LB_KEY=`dropguess-lb-${TODAY_KEY}`;
@@ -317,22 +368,157 @@ async function saveScore(name,timeMs,guesses){
   try{
     let scores=[];
     try{const r=await window.storage.get(LB_KEY,true);if(r)scores=JSON.parse(r.value);}catch(e){}
-    scores.push({name,timeMs,guesses,track:todaySong.track,artist:todaySong.artist,ts:Date.now()});
+    scores.push({name,timeMs,guesses,track:currentSong.track,artist:currentSong.artist,ts:Date.now()});
     await window.storage.set(LB_KEY,JSON.stringify(scores),true);
-  }catch(e){console.warn('Save failed',e);}
+    return scores;
+  }catch(e){console.warn('Save failed',e);return null;}
 }
 
 /* ── STATE ── */
-const MAX_GUESSES=6,SNIPPET_DURATION=30,WAVE_BARS=32;
+const MAX_GUESSES=3,SNIPPET_DURATION=30,WAVE_BARS=32;
 let guesses=[],gameOver=false,filteredArtists=[],hlIdx=-1;
 let gameTimerInterval=null,gameStartTime=0,gameElapsedMs=0,gameStopped=false;
 let scWidget=null,isPlaying=false,snippetInterval=null,snippetSeconds=0;
+let pendingSeekToStart=false;
+let playbackFallbackAttempts=0;
+let playbackConfirmed=false;
+let restartSnippetOnPlay=false;
+let currentArtworkUrl='';
+let autoplayWatchdogTimer=null;
+// SoundCloud widget volume scaling varies by embed; 100 is reliably loud on this widget.
+const SC_VOLUME_LEVEL = 100;
+const DEBUG_SOUND = new URLSearchParams(window.location.search).get('debug') === '1';
+const HEALTHCHECK_MODE = new URLSearchParams(window.location.search).get('healthcheck') === '1';
+const debugSoundEl = DEBUG_SOUND ? document.getElementById('debug-soundcloud') : null;
+if(debugSoundEl) debugSoundEl.style.display = 'block';
+function dbgSound(msg){
+  if(!debugSoundEl)return;
+  const prev = debugSoundEl.textContent ? debugSoundEl.textContent + '\n' : '';
+  debugSoundEl.textContent = (prev + msg).split('\n').slice(-6).join('\n');
+}
+
+function hideAudioStartOverlay(){
+  const el=document.getElementById('audio-start-overlay');
+  if(el){el.classList.remove('visible');el.setAttribute('aria-hidden','true');}
+}
+function showAudioStartOverlay(){
+  const el=document.getElementById('audio-start-overlay');
+  if(el){el.classList.add('visible');el.setAttribute('aria-hidden','false');}
+}
+function clearAutoplayWatchdog(){
+  if(autoplayWatchdogTimer){clearTimeout(autoplayWatchdogTimer);autoplayWatchdogTimer=null;}
+}
+function scheduleAutoplayWatchdog(){
+  clearAutoplayWatchdog();
+  autoplayWatchdogTimer=setTimeout(()=>{
+    autoplayWatchdogTimer=null;
+    if(playbackConfirmed)return;
+    if(!scWidget)return;
+    try{
+      scWidget.isPaused((paused)=>{
+        if(playbackConfirmed)return;
+        if(paused)showAudioStartOverlay();
+      });
+    }catch(e){showAudioStartOverlay();}
+  },700);
+}
+function userGestureStartAudio(){
+  hideAudioStartOverlay();
+  clearAutoplayWatchdog();
+  if(!scWidget)return;
+  try{
+    scWidget.setVolume(SC_VOLUME_LEVEL);
+    pendingSeekToStart=true;
+    scWidget.play();
+  }catch(e){}
+}
+
+function fallbackToNextSong(){
+  if(playbackFallbackAttempts>=SONGS.length-1){
+    dbgSound('All songs failed to load');
+    return false;
+  }
+  playbackFallbackAttempts++;
+  currentSongIdx=(currentSongIdx+1)%SONGS.length;
+  currentSong=SONGS[currentSongIdx];
+  currentArtworkUrl=currentSong.artworkUrl||'';
+  dbgSound(`Fallback -> ${currentSong.artist} - ${currentSong.track}`);
+  return true;
+}
+
+function createHealthPanel(){
+  const panel=document.createElement('div');
+  panel.id='health-panel';
+  panel.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9999;max-width:420px;max-height:55vh;overflow:auto;background:#0d0d1c;border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;font:12px/1.4 "Plus Jakarta Sans",sans-serif;color:#eee;white-space:pre-wrap;';
+  panel.textContent='SoundCloud health check starting...';
+  document.body.appendChild(panel);
+  return panel;
+}
+
+function ensureScApi(){
+  return new Promise((resolve)=>{
+    if(window.SC){resolve();return;}
+    const s=document.createElement('script');
+    s.src='https://w.soundcloud.com/player/api.js';
+    s.onload=()=>resolve();
+    document.head.appendChild(s);
+  });
+}
+
+function checkOneTrack(song,timeoutMs=7000){
+  return new Promise((resolve)=>{
+    const frame=document.createElement('iframe');
+    frame.allow='autoplay; encrypted-media';
+    frame.style.cssText='position:absolute;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
+    frame.src=song.scEmbedUrl;
+    document.body.appendChild(frame);
+
+    const widget=window.SC.Widget(frame);
+    let settled=false;
+    const done=(ok,reason)=>{
+      if(settled)return;
+      settled=true;
+      try{frame.remove();}catch(e){}
+      resolve({ok,reason});
+    };
+
+    const timer=setTimeout(()=>done(false,'timeout'),timeoutMs);
+    widget.bind(window.SC.Widget.Events.READY,()=>{
+      clearTimeout(timer);
+      done(true,'ready');
+    });
+    widget.bind(window.SC.Widget.Events.ERROR,()=>{
+      clearTimeout(timer);
+      done(false,'error');
+    });
+  });
+}
+
+async function runTrackHealthCheck(){
+  const panel=createHealthPanel();
+  await ensureScApi();
+  const bad=[];
+  for(let i=0;i<SONGS.length;i++){
+    const s=SONGS[i];
+    panel.textContent=`Checking ${i+1}/${SONGS.length}: ${s.artist} - ${s.track}\n\n`+panel.textContent;
+    const r=await checkOneTrack(s);
+    if(!r.ok) bad.push({song:s,reason:r.reason});
+  }
+  const okCount=SONGS.length-bad.length;
+  panel.textContent=`Health check complete.\nOK: ${okCount}\nFailed: ${bad.length}\n\n`+
+    (bad.length?bad.map(b=>`- ${b.song.artist} - ${b.song.track} [${b.reason}]`).join('\n'):'No failing tracks detected.')+
+    '\n\n(Also logged to console as window.dropguessHealthCheck)';
+  window.dropguessHealthCheck={ok:okCount,failed:bad,total:SONGS.length};
+  console.log('DropGuess health check',window.dropguessHealthCheck);
+}
 
 /* ── INIT ── */
 function init(){
   const d=new Date();
   document.getElementById('date-pill').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  loadLeaderboard('lb-start-list');
+  const audioStartBtn=document.getElementById('audio-start-btn');
+  if(audioStartBtn)audioStartBtn.addEventListener('click',userGestureStartAudio);
+  if(HEALTHCHECK_MODE){runTrackHealthCheck();}
 }
 
 /* ── SCREENS ── */
@@ -359,19 +545,93 @@ function startCountdown(){
 
 /* ── LAUNCH ── */
 function launchGame(){
+  hideAudioStartOverlay();
+  clearAutoplayWatchdog();
+  playbackFallbackAttempts=0;
+  currentSongIdx=initialSongIdx;
+  currentSong=SONGS[currentSongIdx];
+  currentArtworkUrl=currentSong.artworkUrl||'';
+  playbackConfirmed=false;
+  restartSnippetOnPlay=false;
   const wf=document.getElementById('waveform');wf.innerHTML='';
   for(let i=0;i<WAVE_BARS;i++){const b=document.createElement('div');b.className='wave-bar';b.style.height=(18+Math.random()*65)+'%';wf.appendChild(b);}
   renderLives();showScreen('game');
+  document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
-  iframe.src=todaySong.scEmbedUrl;
-  document.getElementById('hint-img').src=todaySong.artworkUrl;
+  iframe.src=currentSong.scEmbedUrl;
+  document.getElementById('hint-img').src=currentArtworkUrl;
 
   function initWidget(){
     scWidget=window.SC?window.SC.Widget(iframe):null;
     if(scWidget){
+      // SoundCloud widget can ignore/behave oddly when seeking too early.
+      // We only seek after playback actually begins.
+      scWidget.bind(window.SC.Widget.Events.PLAY,()=>{
+        // Ensure volume is applied at the moment playback starts.
+        try{scWidget.setVolume(SC_VOLUME_LEVEL);}catch(e){}
+        if(pendingSeekToStart){
+          pendingSeekToStart=false;
+          // Some tracks are shorter than snippet start + 30s. Clamp so we can
+          // still play as much of the snippet window as possible.
+          try{
+            scWidget.getDuration((durMs)=>{
+              const safeStart=Math.min(SNIPPET_START_MS,Math.max(0,durMs-(SNIPPET_DURATION*1000)));
+              try{scWidget.seekTo(safeStart);}catch(e2){}
+              dbgSound(`PLAY -> seekTo ${safeStart}ms (dur=${durMs}ms)`);
+            });
+          }catch(e){dbgSound('PLAY -> seekTo failed');}
+        }
+        dbgSound('PLAY event');
+        if(restartSnippetOnPlay){
+          restartSnippetOnPlay=false;
+          startSnippetVisual();
+        } else if(!playbackConfirmed){
+          playbackConfirmed=true;
+          hideAudioStartOverlay();
+          clearAutoplayWatchdog();
+          startSnippetVisual();
+          startGameTimer();
+        } else if(!isPlaying){
+          resumeSnippetVisual();
+        }
+        // Extra debug: confirm widget reports volume/position changes.
+        try{
+          scWidget.getVolume(v=>dbgSound(`widget volume=${v}`));
+          scWidget.getPosition(p=>dbgSound(`widget position=${p}ms`));
+        }catch(e3){}
+      });
+      scWidget.bind(window.SC.Widget.Events.PAUSE,()=>{
+        dbgSound('PAUSE event');
+      });
       scWidget.bind(window.SC.Widget.Events.READY,()=>{
-        scWidget.setVolume(80);scWidget.play();
-        startSnippetVisual();startGameTimer();
+        scWidget.setVolume(SC_VOLUME_LEVEL);
+        dbgSound(`READY: ${currentSong.artist} - ${currentSong.track}`);
+        try{
+          scWidget.getCurrentSound((sound)=>{
+            if(sound&&sound.artwork_url){
+              currentArtworkUrl=sound.artwork_url.replace('-large','-t500x500');
+              document.getElementById('hint-img').src=currentArtworkUrl;
+            }
+          });
+        }catch(e){}
+        pendingSeekToStart=true;
+        scWidget.play();
+        scheduleAutoplayWatchdog();
+      });
+      scWidget.bind(window.SC.Widget.Events.ERROR,()=>{
+        dbgSound('ERROR event');
+        if(fallbackToNextSong()){
+          hideAudioStartOverlay();
+          clearAutoplayWatchdog();
+          pendingSeekToStart=false;
+          playbackConfirmed=false;
+          clearInterval(snippetInterval);
+          isPlaying=false;
+          const iframeEl=document.getElementById('sc-iframe');
+          iframeEl.src=currentSong.scEmbedUrl;
+          document.getElementById('hint-img').src=currentArtworkUrl||'';
+          setTimeout(()=>initWidget(),300);
+        }
       });
     } else {startSnippetVisual();startGameTimer();}
   }
@@ -386,7 +646,11 @@ function stopGameTimer(){gameStopped=true;clearInterval(gameTimerInterval);gameE
 function fmtTime(ms){const ts=Math.floor(ms/1000),m=Math.floor(ts/60),s=ts%60,t=Math.floor((ms%1000)/100);return `${m}:${String(s).padStart(2,'0')}.${t}`;}
 
 /* ── SNIPPET ── */
+// Start playback at exactly 00:45 for every track.
+const SNIPPET_START_SECONDS = 45;
+const SNIPPET_START_MS = SNIPPET_START_SECONDS * 1000;
 function startSnippetVisual(){
+  clearInterval(snippetInterval);
   isPlaying=true;snippetSeconds=0;
   document.getElementById('play-pause-btn').textContent='⏸';
   snippetInterval=setInterval(()=>{
@@ -399,7 +663,32 @@ function startSnippetVisual(){
       if(bp<prog-(1/WAVE_BARS))b.classList.add('played');
       else if(Math.abs(bp-prog)<(1.5/WAVE_BARS))b.classList.add('active');
     });
-    if(snippetSeconds>=SNIPPET_DURATION){clearInterval(snippetInterval);isPlaying=false;document.getElementById('play-pause-btn').textContent='▶';}
+    if(snippetSeconds>=SNIPPET_DURATION){
+      clearInterval(snippetInterval);
+      isPlaying=false;
+      document.getElementById('play-pause-btn').textContent='▶';
+      // Keep audio aligned with the UI “30-second snippet” timer.
+      dbgSound('Snippet end -> pause');
+      if(scWidget)try{scWidget.pause();}catch(e){}
+    }
+  },1000);
+}
+
+function resumeSnippetVisual(){
+  clearInterval(snippetInterval);
+  isPlaying=true;
+  document.getElementById('play-pause-btn').textContent='⏸';
+  snippetInterval=setInterval(()=>{
+    snippetSeconds=Math.min(snippetSeconds+1,SNIPPET_DURATION);
+    const rem=SNIPPET_DURATION-snippetSeconds;
+    document.getElementById('snippet-timer').textContent=`0:${String(Math.max(0,rem)).padStart(2,'0')}`;
+    const prog=snippetSeconds/SNIPPET_DURATION;
+    document.querySelectorAll('.wave-bar').forEach((b,i)=>{
+      const bp=i/WAVE_BARS;b.classList.remove('played','active');
+      if(bp<prog-(1/WAVE_BARS))b.classList.add('played');
+      else if(Math.abs(bp-prog)<(1.5/WAVE_BARS))b.classList.add('active');
+    });
+    if(snippetSeconds>=SNIPPET_DURATION){clearInterval(snippetInterval);isPlaying=false;document.getElementById('play-pause-btn').textContent='▶';if(scWidget)try{scWidget.pause();}catch(e){}}
   },1000);
 }
 
@@ -409,21 +698,11 @@ function togglePlayPause(){
     document.getElementById('play-pause-btn').textContent='▶';
     if(scWidget)try{scWidget.pause();}catch(e){}
   } else {
+    // If the snippet already finished, replay from 00:45.
+    if(snippetSeconds>=SNIPPET_DURATION){replaySnippet();return;}
+    pendingSeekToStart=false;
+    if(scWidget)try{scWidget.setVolume(SC_VOLUME_LEVEL);scWidget.play();}catch(e){}
     document.getElementById('play-pause-btn').textContent='⏸';
-    if(scWidget)try{scWidget.play();}catch(e){}
-    snippetInterval=setInterval(()=>{
-      snippetSeconds=Math.min(snippetSeconds+1,SNIPPET_DURATION);
-      const rem=SNIPPET_DURATION-snippetSeconds;
-      document.getElementById('snippet-timer').textContent=`0:${String(Math.max(0,rem)).padStart(2,'0')}`;
-      const prog=snippetSeconds/SNIPPET_DURATION;
-      document.querySelectorAll('.wave-bar').forEach((b,i)=>{
-        const bp=i/WAVE_BARS;b.classList.remove('played','active');
-        if(bp<prog-(1/WAVE_BARS))b.classList.add('played');
-        else if(Math.abs(bp-prog)<(1.5/WAVE_BARS))b.classList.add('active');
-      });
-      if(snippetSeconds>=SNIPPET_DURATION){clearInterval(snippetInterval);isPlaying=false;document.getElementById('play-pause-btn').textContent='▶';}
-    },1000);
-    isPlaying=true;
   }
 }
 
@@ -431,8 +710,9 @@ function replaySnippet(){
   clearInterval(snippetInterval);snippetSeconds=0;isPlaying=false;
   document.getElementById('snippet-timer').textContent=`0:${String(SNIPPET_DURATION).padStart(2,'0')}`;
   document.querySelectorAll('.wave-bar').forEach(b=>b.classList.remove('played','active'));
-  if(scWidget)try{scWidget.seekTo(0);scWidget.play();}catch(e){}
-  startSnippetVisual();
+  restartSnippetOnPlay=true;
+  pendingSeekToStart=true;
+  if(scWidget)try{scWidget.setVolume(SC_VOLUME_LEVEL);scWidget.play();}catch(e){}
 }
 
 function stopAllPlayback(){clearInterval(snippetInterval);isPlaying=false;if(scWidget)try{scWidget.pause();}catch(e){}}
@@ -454,7 +734,13 @@ function onInput(){
   filteredArtists.slice(0,8).forEach((a)=>{const item=document.createElement('div');item.className='autocomplete-item';item.textContent=a;item.onclick=()=>selectArtist(a);list.appendChild(item);});
   list.classList.add('open');
 }
-function selectArtist(name){document.getElementById('guess-input').value=name;document.getElementById('autocomplete-list').classList.remove('open');hlIdx=-1;}
+function selectArtist(name){
+  document.getElementById('guess-input').value=name;
+  document.getElementById('autocomplete-list').classList.remove('open');
+  hlIdx=-1;
+  // Auto-submit when selecting an artist from the dropdown.
+  submitGuess();
+}
 function onKeyDown(e){
   const list=document.getElementById('autocomplete-list');const items=list.querySelectorAll('.autocomplete-item');
   if(e.key==='ArrowDown'){e.preventDefault();hlIdx=Math.min(hlIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('hl',i===hlIdx));}
@@ -468,7 +754,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap')
 function submitGuess(){
   if(gameOver)return;
   const input=document.getElementById('guess-input');const val=input.value.trim();if(!val)return;
-  const correct=val.toLowerCase()===todaySong.artist.toLowerCase();
+  const correct=val.toLowerCase()===currentSong.artist.toLowerCase();
   guesses.push({text:val,correct});
   const history=document.getElementById('guess-history');
   const pill=document.createElement('div');pill.className='guess-pill';
@@ -495,10 +781,10 @@ function endGame(won){
   card.className='result-card '+(won?'win':'lose');
   document.getElementById('result-emoji').textContent=won?'🎉':'😔';
   document.getElementById('result-title').textContent=won?`GOT IT IN ${guesses.length}!`:'BETTER LUCK TOMORROW';
-  document.getElementById('result-artist').textContent=todaySong.artist;
-  document.getElementById('result-track').textContent=`"${todaySong.track}"`;
-  document.getElementById('result-img').src=todaySong.artworkUrl;
-  document.getElementById('sc-link').href=todaySong.scUrl;
+  document.getElementById('result-artist').textContent=currentSong.artist;
+  document.getElementById('result-track').textContent=`"${currentSong.track}"`;
+  document.getElementById('result-img').src=currentArtworkUrl||'';
+  document.getElementById('sc-link').href=currentSong.scUrl;
   if(won){document.getElementById('result-time').textContent=`⏱ ${fmtTime(gameElapsedMs)}`;document.getElementById('nickname-wrap').style.display='block';}
   else{document.getElementById('result-time').textContent='';document.getElementById('nickname-wrap').style.display='none';}
   showScreen('result');loadLeaderboard('lb-result-list');
@@ -508,19 +794,27 @@ function endGame(won){
 async function submitScore(){
   const nameInput=document.getElementById('nickname-input');const name=nameInput.value.trim();if(!name){nameInput.focus();return;}
   const btn=document.querySelector('.submit-score-btn');btn.textContent='Saving...';btn.disabled=true;
-  await saveScore(name,gameElapsedMs,guesses.length);
+  const scores=await saveScore(name,gameElapsedMs,guesses.length);
   document.getElementById('nickname-wrap').innerHTML='<div style="color:var(--green);font-size:0.88rem;font-weight:600;">✓ Score saved — you\'re on the board!</div>';
-  loadLeaderboard('lb-result-list');
+  const lbEl=document.getElementById('lb-result-list');
+  if(scores)renderLB(lbEl,scores);
+  else await loadLeaderboard('lb-result-list');
 }
 
 /* ── RESET ── */
 function resetToStart(){
   guesses=[];gameOver=false;gameStopped=false;gameElapsedMs=0;snippetSeconds=0;
+  playbackFallbackAttempts=0;
+  playbackConfirmed=false;
+  currentSongIdx=initialSongIdx;
+  currentSong=SONGS[currentSongIdx];
+  hideAudioStartOverlay();
+  clearAutoplayWatchdog();
   clearInterval(gameTimerInterval);clearInterval(snippetInterval);
   document.getElementById('guess-history').innerHTML='';
   document.getElementById('game-timer-val').textContent='0:00.0';
   document.getElementById('sc-iframe').src='';
-  showScreen('start');loadLeaderboard('lb-start-list');
+  showScreen('start');
 }
 
 /* ── UTILS ── */
