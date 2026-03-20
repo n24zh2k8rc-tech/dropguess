@@ -184,6 +184,8 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .sc-link:hover { opacity:0.9; }
 .play-again-btn { margin-top:0.75rem; display:inline-block; padding:9px 20px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--muted); font-family:'Plus Jakarta Sans',sans-serif; font-size:0.82rem; cursor:pointer; transition:border-color 0.2s,color 0.2s; }
 .play-again-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+.share-btn { margin-top:0.55rem; display:inline-flex; align-items:center; justify-content:center; padding:10px 20px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--muted); font-family:'Plus Jakarta Sans',sans-serif; font-size:0.85rem; cursor:pointer; transition:border-color 0.2s,color 0.2s, transform 0.15s; gap:10px; }
+.share-btn:hover { border-color:var(--cyan); color:var(--cyan); transform:translateY(-1px); }
 
 /* LEADERBOARD */
 .leaderboard-card { width:100%; background:var(--card); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
@@ -346,6 +348,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
       <a class="sc-link" id="sc-link" href="#" target="_blank" rel="noopener">🔊 Listen on SoundCloud</a>
       <br>
       <button class="play-again-btn" onclick="resetToStart()">← Back to start</button>
+      <button class="share-btn" type="button" id="share-btn" onclick="shareChallenge()">↗ Share Challenge</button>
     </div>
     <div class="leaderboard-card">
       <div class="lb-header">
@@ -421,7 +424,30 @@ const ALL_ARTISTS = [...new Set(SONGS.map(s=>s.artist))].concat([
 ]).sort();
 
 /* ── DAILY SONG ── */
-function getTodayKey(){const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;}
+function getDayOverrideKey(){
+  try{
+    const sp=new URLSearchParams(window.location.search);
+    const day=sp.get('day');
+    if(day && /^[0-9]{8}$/.test(day)) return day;
+  }catch(e){}
+  return null;
+}
+function getTodayKey(){
+  const override=getDayOverrideKey();
+  if(override) return override;
+  const d=new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+function formatDayKeyLabel(dayKey){
+  // dayKey: YYYYMMDD
+  try{
+    const y=parseInt(dayKey.slice(0,4),10);
+    const m=parseInt(dayKey.slice(4,6),10)-1;
+    const d=parseInt(dayKey.slice(6,8),10);
+    const dt=new Date(Date.UTC(y,m,d));
+    return new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}).format(dt);
+  }catch(e){return '';}
+}
 function seededIdx(seed,max){let h=(seed^0xdeadbeef)>>>0;h=Math.imul(h^h>>>16,0x45d9f3b);h=Math.imul(h^h>>>16,0x45d9f3b);h^=h>>>16;return Math.abs(h)%max;}
 const TODAY_KEY=getTodayKey();
 const initialSongIdx=seededIdx(parseInt(TODAY_KEY,10),SONGS.length);
@@ -735,8 +761,7 @@ async function runTrackHealthCheck(){
 
 /* ── INIT ── */
 function init(){
-  const d=new Date();
-  document.getElementById('date-pill').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('date-pill').textContent=formatDayKeyLabel(TODAY_KEY);
   const audioOv=document.getElementById('audio-start-overlay');
   const descEl=document.getElementById('audio-start-desc');
   if(descEl)descEl.textContent=needsMandatoryTapForAudio()
@@ -1223,6 +1248,65 @@ function resetToStart(){
 
 /* ── UTILS ── */
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function copyText(text){
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){}
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';
+    ta.style.top='-1000px';
+    ta.style.left='-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){return false;}
+}
+
+function getShareUrl(){
+  const url=new URL(window.location.href);
+  url.searchParams.set('day',TODAY_KEY);
+  return url.toString();
+}
+
+async function shareChallenge(){
+  const btn=document.getElementById('share-btn');
+  if(btn){btn.textContent='Sharing...';btn.disabled=true;}
+
+  const dayLabel=formatDayKeyLabel(TODAY_KEY);
+  // result-time is only filled when you win, but `gameElapsedMs` is still available for a general message.
+  const myTime=fmtTime(gameElapsedMs);
+  const url=getShareUrl();
+  const shareText=`Drop Guess: Daily EDM Challenge (${dayLabel}). I finished in ${myTime}. Can you beat me?`;
+
+  try{
+    if(navigator.share){
+      await navigator.share({title:'Drop Guess',text:shareText,url});
+    }else{
+      const ok=await copyText(url);
+      if(ok && btn) btn.textContent='Link copied!';
+    }
+  }catch(e){
+    // If share sheet fails, fall back to copy.
+    const ok=await copyText(url);
+    if(ok && btn) btn.textContent='Link copied!';
+  }finally{
+    if(btn){
+      setTimeout(()=>{
+        btn.disabled=false;
+        btn.textContent='↗ Share Challenge';
+      },900);
+    }
+  }
+}
 
 init();
 </script>
