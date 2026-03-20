@@ -267,6 +267,13 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
         </div>
         <div class="lb-list" id="lb-start-list"><div class="lb-loading">Loading scores...</div></div>
       </div>
+      <div class="nickname-wrap" id="nickname-wrap-start" style="display:none;">
+        <label>Add your name to today's leaderboard</label>
+        <div class="nickname-row">
+          <input class="nickname-input" id="nickname-input-start" type="text" placeholder="Your name..." maxlength="20" />
+          <button class="submit-score-btn" id="submit-score-btn-start" onclick="submitScoreFromStart()">Submit →</button>
+        </div>
+      </div>
       <button class="share-btn" type="button" id="share-btn-start" onclick="shareChallenge()">↗ Share Challenge</button>
     </div>
     <div class="date-pill date-pill--daily">NEW CHALLENGE EVERYDAY</div>
@@ -346,7 +353,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
         <label>Enter your name for the leaderboard</label>
         <div class="nickname-row">
           <input class="nickname-input" id="nickname-input" type="text" placeholder="Your name..." maxlength="20" />
-          <button class="submit-score-btn" onclick="submitScore()">Submit →</button>
+          <button class="submit-score-btn" id="submit-score-btn-result" onclick="submitScore()">Submit →</button>
         </div>
       </div>
       <a class="sc-link" id="sc-link" href="#" target="_blank" rel="noopener">🔊 Listen on SoundCloud</a>
@@ -463,6 +470,8 @@ let currentSong=SONGS[currentSongIdx];
 const DATA_VERSION = '1';
 const LB_KEY=`dropguess-v${DATA_VERSION}-lb-${TODAY_KEY}`;
 const PLAYED_KEY=`dropguess-v${DATA_VERSION}-played-${TODAY_KEY}`;
+const COMPLETE_KEY=`dropguess-v${DATA_VERSION}-complete-${TODAY_KEY}`;
+const SUBMITTED_KEY=`dropguess-v${DATA_VERSION}-submitted-${TODAY_KEY}`;
 // Fill these two values to enable a shared global leaderboard via Supabase.
 const SUPABASE_URL = 'https://qdsylgqetbjshpdejxrl.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_IkJVnJwhPojYxb8rNoeTaA_XPdah4Xv';
@@ -531,6 +540,8 @@ async function fetchScoresForToday(){
 }
 
 let dailyLockedToday=false;
+let submittedToday=false;
+let completionData=null;
 
 async function isDailyLocked(){
   try{
@@ -544,10 +555,57 @@ async function isDailyLocked(){
   }catch(e){ return false; }
 }
 
+async function isDailySubmitted(){
+  try{
+    const r=await storage.get(SUBMITTED_KEY,true);
+    return !!r;
+  }catch(e){ return false; }
+}
+
+async function markDailySubmitted(){
+  try{
+    submittedToday=true;
+    await storage.set(SUBMITTED_KEY,'1',true);
+  }catch(e){}
+}
+
 async function markDailyLocked(){
   try{
     dailyLockedToday=true;
     await storage.set(PLAYED_KEY,'1',true);
+  }catch(e){}
+}
+
+function normalizeCompletionData(v){
+  if(!v||typeof v!=='object') return null;
+  const timeMs=Number(v.timeMs);
+  const guesses=Number(v.guesses);
+  const track=String(v.track||'');
+  const artist=String(v.artist||'');
+  const ts=Number(v.ts||Date.now());
+  if(!Number.isFinite(timeMs)||timeMs<0) return null;
+  if(!Number.isFinite(guesses)||guesses<1) return null;
+  if(!track||!artist) return null;
+  return {timeMs,guesses,track,artist,ts};
+}
+
+async function loadCompletionData(){
+  try{
+    const r=await storage.get(COMPLETE_KEY,true);
+    completionData=normalizeCompletionData(r?JSON.parse(r.value):null);
+    return completionData;
+  }catch(e){
+    completionData=null;
+    return null;
+  }
+}
+
+async function markDailyComplete(data){
+  const normalized=normalizeCompletionData(data);
+  if(!normalized) return;
+  completionData=normalized;
+  try{
+    await storage.set(COMPLETE_KEY,JSON.stringify(normalized),true);
   }catch(e){}
 }
 
@@ -598,6 +656,8 @@ function applyDailyLockUI(){
   const playTodayBtn=document.getElementById('play-today-btn');
   const startDesc=document.getElementById('start-desc');
   const postPlayMsg=document.getElementById('post-play-msg');
+  const startNameWrap=document.getElementById('nickname-wrap-start');
+  const resultNameWrap=document.getElementById('nickname-wrap');
   if(lockedWrap) lockedWrap.style.display=dailyLockedToday?'flex':'none';
   if(playTodayBtn){
     if(dailyLockedToday){
@@ -614,6 +674,12 @@ function applyDailyLockUI(){
   }
   if(postPlayMsg){
     postPlayMsg.style.display=dailyLockedToday?'block':'none';
+  }
+  if(startNameWrap){
+    startNameWrap.style.display=(dailyLockedToday && !submittedToday && !!completionData)?'block':'none';
+  }
+  if(resultNameWrap){
+    resultNameWrap.style.display=(!submittedToday && !!completionData)?'block':'none';
   }
   if(dailyLockedToday) loadLeaderboard('lb-start-list');
 }
@@ -647,6 +713,50 @@ async function saveScore(name,timeMs,guesses){
     await storage.set(LB_KEY,JSON.stringify(scores),true);
     return { scores: normalizeScores(scores), entry };
   }catch(e){console.warn('Save failed',e);return null;}
+}
+
+function getCompletionForSubmit(){
+  if(completionData) return completionData;
+  // Fallback to current in-memory run if data exists but wasn't persisted yet.
+  const fallback=normalizeCompletionData({
+    timeMs:gameElapsedMs,
+    guesses:Math.max(guesses.length,1),
+    track:currentSong&&currentSong.track?currentSong.track:'',
+    artist:currentSong&&currentSong.artist?currentSong.artist:'',
+    ts:Date.now()
+  });
+  return fallback;
+}
+
+function showSubmittedMessage(targetWrapId){
+  const wrap=document.getElementById(targetWrapId);
+  if(!wrap) return;
+  wrap.innerHTML='<div style="color:var(--green);font-size:0.88rem;font-weight:600;">✓ Score saved — you\'re on the board!</div>';
+}
+
+async function submitScoreUsingInput(inputId, btnId, successWrapId){
+  const input=document.getElementById(inputId);
+  if(!input) return;
+  const name=input.value.trim();
+  if(!name){input.focus();return;}
+  const run=getCompletionForSubmit();
+  if(!run){return;}
+
+  const btn=document.getElementById(btnId)||document.querySelector('.submit-score-btn');
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+
+  const saved=await saveScore(name,run.timeMs,run.guesses);
+  if(saved){
+    await markDailySubmitted();
+    showSubmittedMessage(successWrapId);
+    const lbEl=document.getElementById('lb-result-list');
+    if(lbEl) renderLB(lbEl,saved.scores,saved.entry.ts);
+    const lbStart=document.getElementById('lb-start-list');
+    if(lbStart) renderLB(lbStart,saved.scores,saved.entry.ts);
+  }else{
+    if(btn){btn.textContent='Submit →';btn.disabled=false;}
+  }
+  applyDailyLockUI();
 }
 
 async function updateFastestDailyValue(){
@@ -862,14 +972,19 @@ function init(){
     // Optimistically allow play; we'll lock it if the daily flag is present.
     playTodayBtn.disabled=false;
     dailyLockedToday=false;
+    submittedToday=false;
+    completionData=null;
     applyDailyLockUI();
     playTodayBtn.addEventListener('pointerdown',beginPlayWithAudio,{passive:true});
     playTodayBtn.addEventListener('click',beginPlayWithAudio);
-    isDailyLocked().then(locked=>{
+    Promise.all([isDailyLocked(),isDailySubmitted(),loadCompletionData()]).then(([locked,submitted])=>{
       dailyLockedToday=locked;
+      submittedToday=submitted;
       applyDailyLockUI();
     }).catch(()=>{
       dailyLockedToday=false;
+      submittedToday=false;
+      completionData=null;
       applyDailyLockUI();
     });
   }
@@ -1288,6 +1403,13 @@ function revealHint(){document.getElementById('hint-img').classList.add('reveale
 function endGame(won){
   gameOver=true;
   markDailyLocked();
+  markDailyComplete({
+    timeMs:gameElapsedMs,
+    guesses:Math.max(guesses.length,1),
+    track:currentSong.track,
+    artist:currentSong.artist,
+    ts:Date.now()
+  });
   document.getElementById('guess-zone').style.display='none';
   document.getElementById('hint-zone').style.display='none';
   const card=document.getElementById('result-card');
@@ -1298,20 +1420,19 @@ function endGame(won){
   document.getElementById('result-track').textContent=`"${currentSong.track}"`;
   document.getElementById('result-img').src=currentArtworkUrl||'';
   document.getElementById('sc-link').href=currentSong.scUrl;
-  if(won){document.getElementById('result-time').textContent=`⏱ ${fmtTime(gameElapsedMs)}`;document.getElementById('nickname-wrap').style.display='block';}
-  else{document.getElementById('result-time').textContent='';document.getElementById('nickname-wrap').style.display='none';}
+  if(won){document.getElementById('result-time').textContent=`⏱ ${fmtTime(gameElapsedMs)}`;}
+  else{document.getElementById('result-time').textContent='';}
+  document.getElementById('nickname-wrap').style.display=(!submittedToday&&!!completionData)?'block':'none';
   showScreen('result');loadLeaderboard('lb-result-list');
 }
 
 /* ── SUBMIT SCORE ── */
 async function submitScore(){
-  const nameInput=document.getElementById('nickname-input');const name=nameInput.value.trim();if(!name){nameInput.focus();return;}
-  const btn=document.querySelector('.submit-score-btn');btn.textContent='Saving...';btn.disabled=true;
-  const saved=await saveScore(name,gameElapsedMs,guesses.length);
-  document.getElementById('nickname-wrap').innerHTML='<div style="color:var(--green);font-size:0.88rem;font-weight:600;">✓ Score saved — you\'re on the board!</div>';
-  const lbEl=document.getElementById('lb-result-list');
-  if(saved)renderLB(lbEl,saved.scores,saved.entry.ts);
-  else await loadLeaderboard('lb-result-list');
+  await submitScoreUsingInput('nickname-input','submit-score-btn-result','nickname-wrap');
+}
+
+async function submitScoreFromStart(){
+  await submitScoreUsingInput('nickname-input-start','submit-score-btn-start','nickname-wrap-start');
 }
 
 /* ── RESET ── */
