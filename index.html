@@ -629,11 +629,6 @@ function beginPlayWithAudio(){
 }
 
 function startCountdownThenLaunch(){
-  if(isMobileTablet()){
-    // On touch devices, skip countdown so the initial tap is what triggers playback.
-    launchGame();
-    return;
-  }
   showScreen('countdown');
   const textEl=document.getElementById('countdown-text');
   if(!textEl){launchGame();return;}
