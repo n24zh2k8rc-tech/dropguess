@@ -751,6 +751,10 @@ function launchGame(){
           // iOS: for the initial start (not replay), avoid seekTo() to prevent silent audio.
           if(needsMandatoryTapForAudio() && !isReplayRestart){
             pendingInitialSeek=false;
+            // Mimic the manual "pause -> play" gesture fix on iPhone Safari.
+            try{scWidget.setVolume(SC_VOLUME_LEVEL);}catch(eIv){}
+            try{scWidget.pause();}catch(ePa){}
+            try{scWidget.play();}catch(ePl){}
             if(isReplayRestart){
               startSnippetVisual();
             }else if(!playbackConfirmed){
