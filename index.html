@@ -460,7 +460,8 @@ function clearAutoplayWatchdog(){
   if(autoplayWatchdogTimer){clearTimeout(autoplayWatchdogTimer);autoplayWatchdogTimer=null;}
 }
 function scheduleAutoplayWatchdog(){
-  if(isMobileTablet())return; // No "start sound" overlay / autoplay hints on touch devices.
+  // Only iOS needs the explicit "enable sound" overlay.
+  if(!isIOSWebKit())return;
   clearAutoplayWatchdog();
   const ms=(typeof matchMedia!=='undefined'&&matchMedia('(pointer:coarse)').matches)?400:650;
   autoplayWatchdogTimer=setTimeout(()=>{
@@ -672,7 +673,7 @@ function launchGame(){
   renderLives();
   showScreen('game');
   startGameTimer();
-  if(!isMobileTablet()&&needsMandatoryTapForAudio())showAudioStartOverlay();
+  if(needsMandatoryTapForAudio()&&isIOSWebKit())showAudioStartOverlay();
   document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
   const targetEmbed=embedUrlForGame(currentSong);
@@ -789,7 +790,7 @@ function launchGame(){
         }catch(e){}
         pendingSeekToStart=true;
         // On mobile/tablet, the user already tapped "Play", so it's safe to start playback here.
-        if(!needsMandatoryTapForAudio()||isMobileTablet()){
+        if(!needsMandatoryTapForAudio()){
           scWidget.play();
           requestAnimationFrame(()=>{try{scWidget.play();}catch(e){}});
         }
@@ -811,7 +812,7 @@ function launchGame(){
           document.getElementById('hint-img').src=currentArtworkUrl||'';
           setTimeout(()=>{
             initWidget();
-            if(!isMobileTablet()&&needsMandatoryTapForAudio())showAudioStartOverlay();
+            if(needsMandatoryTapForAudio()&&isIOSWebKit())showAudioStartOverlay();
           },300);
         }
       });
