@@ -467,7 +467,9 @@ function hideAudioStartOverlay(){
 }
 function showAudioStartOverlay(){
   const el=document.getElementById('audio-start-overlay');
-  if(el){el.classList.add('visible');el.setAttribute('aria-hidden','false');}
+  if(!el)return;
+  if(isMobileTablet())return; // Remove extra "Start sound" step on touch devices.
+  el.classList.add('visible');el.setAttribute('aria-hidden','false');
 }
 function setAudioStartReady(ready){
   const btn=document.getElementById('audio-start-btn');
@@ -703,7 +705,7 @@ function launchGame(){
   renderLives();
   showScreen('game');
   startGameTimer();
-  if(needsMandatoryTapForAudio()&&isIOSWebKit())showAudioStartOverlay();
+  if(needsMandatoryTapForAudio()&&isIOSWebKit()&&!isMobileTablet())showAudioStartOverlay();
   document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
   const targetEmbed=embedUrlForGame(currentSong);
@@ -837,12 +839,12 @@ function launchGame(){
           });
         }catch(e){}
         pendingSeekToStart=true;
-        if(needsMandatoryTapForAudio() && isIOSWebKit()){
+        if(needsMandatoryTapForAudio() && isIOSWebKit() && !isMobileTablet()){
           setAudioStartReady(true);
           showAudioStartOverlay();
         }
-        // On mobile/tablet, the user already tapped "Play", so it's safe to start playback here.
-        if(!needsMandatoryTapForAudio()){
+        // On touch devices, don't require the extra "Start sound" tap.
+        if(!needsMandatoryTapForAudio() || isMobileTablet()){
           scWidget.play();
           requestAnimationFrame(()=>{try{scWidget.play();}catch(e){}});
         }
@@ -864,7 +866,7 @@ function launchGame(){
           document.getElementById('hint-img').src=currentArtworkUrl||'';
           setTimeout(()=>{
             initWidget();
-            if(needsMandatoryTapForAudio()&&isIOSWebKit())showAudioStartOverlay();
+            if(needsMandatoryTapForAudio()&&isIOSWebKit()&&!isMobileTablet())showAudioStartOverlay();
           },300);
         }
       });
