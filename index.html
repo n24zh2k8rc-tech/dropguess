@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Drop Guess — Daily EDM Challenge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,6 +53,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .start-desc { color:var(--muted); font-size:0.88rem; line-height:1.6; margin-bottom:2rem; max-width:340px; margin-left:auto; margin-right:auto; }
 .play-game-btn { display:inline-flex; align-items:center; gap:10px; padding:16px 40px; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:700; border:none; border-radius:14px; cursor:pointer; letter-spacing:0.04em; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 0 30px rgba(0,245,212,0.25); }
 .play-game-btn:hover { transform:scale(1.05); box-shadow:0 0 50px rgba(0,245,212,0.4); }
+.play-game-btn,.ctrl-btn,#play-today-btn{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 
 /* COUNTDOWN */
 .countdown-wrap { text-align:center; padding:3rem 0; }
@@ -104,6 +105,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
   top:-9999px;
   pointer-events:none;
 }
+#sc-iframe.sc-iframe-ios{
+  opacity:0.9 !important;
+}
 @media (max-width:900px){
   #sc-iframe{
     position:relative;
@@ -115,6 +119,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
     opacity:0.07;
     border:0;
     border-radius:8px;
+  }
+  #sc-iframe.sc-iframe-ios{
+    opacity:0.9 !important;
   }
 }
 
@@ -462,6 +469,18 @@ function showAudioStartOverlay(){
   const el=document.getElementById('audio-start-overlay');
   if(el){el.classList.add('visible');el.setAttribute('aria-hidden','false');}
 }
+function setAudioStartReady(ready){
+  const btn=document.getElementById('audio-start-btn');
+  const desc=document.getElementById('audio-start-desc');
+  if(btn){
+    btn.disabled=!ready;
+    btn.style.opacity=ready?'1':'0.65';
+    btn.style.pointerEvents=ready?'auto':'none';
+  }
+  if(desc){
+    desc.textContent=ready?'Tap to hear the drop (start sound)':'Loading sound...';
+  }
+}
 function clearAutoplayWatchdog(){
   if(autoplayWatchdogTimer){clearTimeout(autoplayWatchdogTimer);autoplayWatchdogTimer=null;}
 }
@@ -495,6 +514,8 @@ function userGestureStartAudio(){
     hideAudioStartOverlay();
     return;
   }
+  const audioStartBtn=document.getElementById('audio-start-btn');
+  if(audioStartBtn&&audioStartBtn.disabled)return;
   unlockMobileAudio();
   clearAutoplayWatchdog();
   if(!scWidget||!scWidgetReady){
@@ -604,6 +625,9 @@ function init(){
   }
   const audioStartBtn=document.getElementById('audio-start-btn');
   if(audioStartBtn)audioStartBtn.addEventListener('click',e=>{e.stopPropagation();userGestureStartAudio();});
+  if(needsMandatoryTapForAudio()&&isIOSWebKit()){
+    setAudioStartReady(false);
+  }
   const playTodayBtn=document.getElementById('play-today-btn');
   if(playTodayBtn){
     playTodayBtn.addEventListener('pointerdown',beginPlayWithAudio,{passive:true});
@@ -813,6 +837,10 @@ function launchGame(){
           });
         }catch(e){}
         pendingSeekToStart=true;
+        if(needsMandatoryTapForAudio() && isIOSWebKit()){
+          setAudioStartReady(true);
+          showAudioStartOverlay();
+        }
         // On mobile/tablet, the user already tapped "Play", so it's safe to start playback here.
         if(!needsMandatoryTapForAudio()){
           scWidget.play();
