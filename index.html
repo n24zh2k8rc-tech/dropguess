@@ -463,6 +463,10 @@ let currentSong=SONGS[currentSongIdx];
 const DATA_VERSION = '1';
 const LB_KEY=`dropguess-v${DATA_VERSION}-lb-${TODAY_KEY}`;
 const PLAYED_KEY=`dropguess-v${DATA_VERSION}-played-${TODAY_KEY}`;
+// Fill these two values to enable a shared global leaderboard via Supabase.
+const SUPABASE_URL = ''; //https://qdsylgqetbjshpdejxrl.supabase.co
+const SUPABASE_ANON_KEY = ''; // sb_publishable_IkJVnJwhPojYxb8rNoeTaA_XPdah4Xv
+const SUPABASE_TABLE = 'daily_scores';
 
 // Some deployments may not define `window.storage`. Fall back to `localStorage` so scores persist.
 const storage = (() => {
@@ -484,6 +488,47 @@ const storage = (() => {
     }
   };
 })();
+
+const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+function supabaseHeaders(extra={}){
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type':'application/json',
+    ...extra
+  };
+}
+
+function normalizeScores(rows){
+  if(!Array.isArray(rows)) return [];
+  return rows.map(r=>({
+    name: String(r.name||'anon'),
+    timeMs: Number(r.time_ms ?? r.timeMs ?? 0),
+    guesses: Number(r.guesses ?? 0),
+    track: String(r.track||''),
+    artist: String(r.artist||''),
+    ts: Number(r.ts ?? Date.now())
+  })).filter(r=>Number.isFinite(r.timeMs)&&r.timeMs>=0);
+}
+
+async function fetchScoresForToday(){
+  if(USE_SUPABASE){
+    const qs=new URLSearchParams({
+      select:'name,time_ms,guesses,track,artist,ts',
+      day_key:`eq.${TODAY_KEY}`,
+      order:'time_ms.asc',
+      limit:'200'
+    });
+    const url=`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?${qs.toString()}`;
+    const res=await fetch(url,{headers:supabaseHeaders()});
+    if(!res.ok) throw new Error(`Supabase load failed (${res.status})`);
+    const rows=await res.json();
+    return normalizeScores(rows);
+  }
+  const res=await storage.get(LB_KEY,true);
+  return normalizeScores(res?JSON.parse(res.value):[]);
+}
 
 let dailyLockedToday=false;
 
@@ -510,8 +555,8 @@ async function loadLeaderboard(listId){
   const el=document.getElementById(listId);
   el.innerHTML='<div class="lb-loading">Loading...</div>';
   try{
-    const res=await storage.get(LB_KEY,true);
-    renderLB(el,res?JSON.parse(res.value):[]);
+    const scores=await fetchScoresForToday();
+    renderLB(el,scores);
   }catch(e){renderLB(el,[]);}
 }
 
@@ -575,12 +620,32 @@ function applyDailyLockUI(){
 
 async function saveScore(name,timeMs,guesses){
   try{
+    const entry={name,timeMs,guesses,track:currentSong.track,artist:currentSong.artist,ts:Date.now()};
+    if(USE_SUPABASE){
+      const url=`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`;
+      const payload={
+        day_key:TODAY_KEY,
+        name:entry.name,
+        time_ms:entry.timeMs,
+        guesses:entry.guesses,
+        track:entry.track,
+        artist:entry.artist,
+        ts:entry.ts
+      };
+      const ins=await fetch(url,{
+        method:'POST',
+        headers:supabaseHeaders({Prefer:'return=minimal'}),
+        body:JSON.stringify(payload)
+      });
+      if(!ins.ok) throw new Error(`Supabase save failed (${ins.status})`);
+      const scores=await fetchScoresForToday();
+      return { scores, entry };
+    }
     let scores=[];
     try{const r=await storage.get(LB_KEY,true);if(r)scores=JSON.parse(r.value);}catch(e){}
-    const entry={name,timeMs,guesses,track:currentSong.track,artist:currentSong.artist,ts:Date.now()};
     scores.push(entry);
     await storage.set(LB_KEY,JSON.stringify(scores),true);
-    return { scores, entry };
+    return { scores: normalizeScores(scores), entry };
   }catch(e){console.warn('Save failed',e);return null;}
 }
 
@@ -589,8 +654,7 @@ async function updateFastestDailyValue(){
   if(!el) return;
   el.textContent='—';
   try{
-    const r=await storage.get(LB_KEY,true);
-    const scores=r?JSON.parse(r.value):[];
+    const scores=await fetchScoresForToday();
     if(!scores.length){el.textContent='—';return;}
     const fastest=Math.min(...scores.map(s=>s.timeMs));
     el.textContent=fmtTime(fastest);
