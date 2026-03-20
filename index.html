@@ -61,10 +61,13 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 
 /* COUNTDOWN */
 .countdown-wrap { text-align:center; padding:3rem 0; }
+.countdown-sound-on { font-size:0.75rem; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--green); margin-bottom:0.6rem; }
 .countdown-num { font-family:'Bebas Neue',sans-serif; font-size:10rem; line-height:1; background:linear-gradient(135deg,var(--cyan),var(--pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:countPop 0.9s cubic-bezier(0.34,1.56,0.64,1); filter:drop-shadow(0 0 40px rgba(0,245,212,0.4)); }
 .countdown-go { font-family:'Bebas Neue',sans-serif; font-size:6rem; line-height:1; background:linear-gradient(135deg,var(--yellow),var(--orange)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:countPop 0.5s cubic-bezier(0.34,1.56,0.64,1); filter:drop-shadow(0 0 40px rgba(255,230,0,0.5)); }
 @keyframes countPop { from{transform:scale(0.3);opacity:0;} to{transform:scale(1);opacity:1;} }
 .countdown-label { font-size:0.8rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-top:0.5rem; }
+.countdown-hear-hint { font-size:0.85rem; color:var(--muted); margin-top:0.75rem; max-width:360px; margin-left:auto; margin-right:auto; }
+.countdown-hint-icon { color:var(--cyan); font-weight:800; }
 
 /* GAME */
 .game-timer-wrap { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 20px; }
@@ -266,8 +269,10 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
   <!-- COUNTDOWN -->
   <div class="screen" id="screen-countdown">
     <div class="countdown-wrap">
+      <div class="countdown-sound-on">SOUND ON!</div>
       <div class="countdown-num" id="countdown-text">3</div>
       <div class="countdown-label">Get Ready</div>
+      <div class="countdown-hear-hint">Can't hear the song? Tap the <span class="countdown-hint-icon">▶/⏸</span> a few times.</div>
     </div>
   </div>
 
