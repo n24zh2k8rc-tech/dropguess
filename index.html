@@ -146,6 +146,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .fastest-daily-wrap { margin-top:auto; width:100%; text-align:center; padding-bottom:0.65rem; }
 .fastest-daily-label { font-size:0.65rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); }
 .fastest-daily-value { font-family:'Bebas Neue',sans-serif; font-size:1.55rem; letter-spacing:0.05em; color:var(--yellow); margin-top:3px; }
+.daily-locked { width:100%; display:flex; flex-direction:column; gap:0.9rem; }
+.daily-locked-msg { text-align:center; color:var(--green); font-weight:700; font-size:0.95rem; }
+.daily-locked-lb .lb-list { max-height:200px; }
 .guess-pill { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 13px; animation:slideIn 0.28s ease; }
 @keyframes slideIn { from{opacity:0;transform:translateY(-7px);} to{opacity:1;transform:translateY(0);} }
 .gicon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
@@ -246,6 +249,16 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
       <div class="start-disc"><img class="start-disc-gif" src="pedro_icon.gif?v=2" alt="Music" /></div>
       <div class="start-desc">A <span class="nobreak">30-SECOND</span> EDM SNIPPET WILL PLAY. GUESS THE ARTIST BEFORE YOUR 3 LIVES RUN OUT.</div>
       <button type="button" class="play-game-btn" id="play-today-btn">▶ &nbsp;Play Today's Drop</button>
+    </div>
+    <div class="daily-locked" id="daily-locked" style="display:none;">
+      <div class="daily-locked-msg">Thank you for playing! Come back tomorrow.</div>
+      <div class="leaderboard-card daily-locked-lb">
+        <div class="lb-header">
+          <div><div class="lb-title">🏆 Leaderboard</div><div class="lb-subtitle">Today's fastest guesses</div></div>
+          <button class="lb-refresh" onclick="loadLeaderboard('lb-start-list')">↺ Refresh</button>
+        </div>
+        <div class="lb-list" id="lb-start-list"><div class="lb-loading">Loading scores...</div></div>
+      </div>
     </div>
     <div class="date-pill date-pill--daily">NEW CHALLENGE DAILY.</div>
   </div>
@@ -412,6 +425,7 @@ let currentSong=SONGS[currentSongIdx];
 
 /* ── LEADERBOARD ── */
 const LB_KEY=`dropguess-lb-${TODAY_KEY}`;
+const PLAYED_KEY=`dropguess-played-${TODAY_KEY}`;
 
 // Some deployments may not define `window.storage`. Fall back to `localStorage` so scores persist.
 const storage = (() => {
@@ -433,6 +447,22 @@ const storage = (() => {
     }
   };
 })();
+
+let dailyLockedToday=false;
+
+async function isDailyLocked(){
+  try{
+    const r=await storage.get(PLAYED_KEY,true);
+    return !!r;
+  }catch(e){ return false; }
+}
+
+async function markDailyLocked(){
+  try{
+    dailyLockedToday=true;
+    await storage.set(PLAYED_KEY,'1',true);
+  }catch(e){}
+}
 
 async function loadLeaderboard(listId){
   const el=document.getElementById(listId);
@@ -474,6 +504,18 @@ function renderLB(el,scores,highlightTs=null){
   }
 
   el.innerHTML=rows.join('');
+}
+
+function applyDailyLockUI(){
+  const lockedWrap=document.getElementById('daily-locked');
+  const playTodayBtn=document.getElementById('play-today-btn');
+  if(lockedWrap) lockedWrap.style.display=dailyLockedToday?'flex':'none';
+  if(playTodayBtn){
+    playTodayBtn.disabled=dailyLockedToday;
+    if(dailyLockedToday) playTodayBtn.innerHTML='▶ &nbsp;Come back tomorrow';
+    else playTodayBtn.innerHTML='▶ &nbsp;Play Today\\'s Drop';
+  }
+  if(dailyLockedToday) loadLeaderboard('lb-start-list');
 }
 
 async function saveScore(name,timeMs,guesses){
@@ -699,8 +741,16 @@ function init(){
   }
   const playTodayBtn=document.getElementById('play-today-btn');
   if(playTodayBtn){
+    playTodayBtn.disabled=true; // unlocked below after daily flag check
     playTodayBtn.addEventListener('pointerdown',beginPlayWithAudio,{passive:true});
     playTodayBtn.addEventListener('click',beginPlayWithAudio);
+    isDailyLocked().then(locked=>{
+      dailyLockedToday=locked;
+      applyDailyLockUI();
+    }).catch(()=>{
+      dailyLockedToday=false;
+      applyDailyLockUI();
+    });
   }
   if(HEALTHCHECK_MODE){runTrackHealthCheck();}
 }
@@ -711,6 +761,7 @@ function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classL
 /* Start game + SoundCloud in the same user gesture (iframe src + script kickoff, then launch immediately). */
 function beginPlayWithAudio(){
   if(playGate)return;
+  if(dailyLockedToday) return;
   playGate=true;
   unlockMobileAudio();
   const btn=document.getElementById('play-today-btn');
@@ -1106,6 +1157,7 @@ function revealHint(){document.getElementById('hint-img').classList.add('reveale
 /* ── END GAME ── */
 function endGame(won){
   gameOver=true;
+  markDailyLocked();
   document.getElementById('guess-zone').style.display='none';
   document.getElementById('hint-zone').style.display='none';
   const card=document.getElementById('result-card');
@@ -1149,8 +1201,9 @@ function resetToStart(){
   playGate=false;
   scWidgetReady=false;
   const pt=document.getElementById('play-today-btn');
-  if(pt){pt.disabled=false;}
+  if(pt){pt.disabled=dailyLockedToday;}
   showScreen('start');
+  applyDailyLockUI();
 }
 
 /* ── UTILS ── */
