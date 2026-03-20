@@ -31,6 +31,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .logo-text { background:linear-gradient(135deg,var(--cyan) 0%,var(--pink) 50%,var(--yellow) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
 .logo-emoji { font-size:0.92em; line-height:1; flex-shrink:0; -webkit-text-fill-color:initial; filter:drop-shadow(0 2px 8px rgba(0,245,212,0.2)); }
 .tagline { font-size:0.75rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); margin-top:0.2rem; }
+.nobreak { white-space:nowrap; }
 .footer-daily-pill { margin-top:auto; width:100%; display:flex; justify-content:center; padding-top:1rem; padding-bottom:max(0.5rem, env(safe-area-inset-bottom)); }
 .date-pill { display:inline-block; padding:4px 14px; border:1px solid var(--border); border-radius:20px; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; }
 .start-card .date-pill { margin:0 auto 1.25rem; border-color:rgba(0,245,212,0.55); color:var(--cyan); box-shadow:0 0 18px rgba(0,245,212,0.15); }
@@ -93,6 +94,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .hint-btn { margin-top:7px; background:none; border:1px solid var(--orange); color:var(--orange); border-radius:8px; padding:5px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer; }
 /* Keep the widget loaded for audio, but visually hide it without `display:none`
    (some browsers throttle media in display-none iframes). */
+/* Desktop: tiny offscreen embed. Mobile WebKit often blocks audio in fully offscreen/zero-opacity iframes. */
 #sc-iframe{
   position:absolute;
   width:1px;
@@ -101,6 +103,19 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
   left:-9999px;
   top:-9999px;
   pointer-events:none;
+}
+@media (max-width:900px){
+  #sc-iframe{
+    position:relative;
+    left:auto;
+    top:auto;
+    width:100%;
+    height:72px;
+    margin-top:0.5rem;
+    opacity:0.07;
+    border:0;
+    border-radius:8px;
+  }
 }
 
 /* GUESS */
@@ -205,7 +220,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 <div class="wrapper">
   <header>
     <div class="logo" role="img" aria-label="Drop Guess"><span class="logo-emoji" aria-hidden="true">🎧</span><span class="logo-text">Drop Guess</span><span class="logo-emoji" aria-hidden="true">🎵</span></div>
-    <div class="tagline">Identify the artist from a 30-second drop</div>
+    <div class="tagline">Identify the artist from a <span class="nobreak">30-second</span> drop</div>
   </header>
 
   <!-- START -->
@@ -214,25 +229,17 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
       <div class="date-pill" id="date-pill"></div>
       <div class="start-disc"><div class="start-disc-inner">🎵</div></div>
       <div class="start-title">Ready to Drop?</div>
-      <div class="start-desc">A 30-second EDM snippet will play. Guess the artist before your 3 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
-      <button class="play-game-btn" onclick="startCountdown()">▶ &nbsp;Play Today's Drop</button>
-    </div>
-  </div>
-
-  <!-- COUNTDOWN -->
-  <div class="screen" id="screen-countdown">
-    <div class="countdown-wrap">
-      <div id="countdown-display" class="countdown-num">3</div>
-      <div class="countdown-label" id="countdown-label">Get ready...</div>
+      <div class="start-desc">A <span class="nobreak">30-second</span> EDM snippet will play. Guess the artist before your 3 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
+      <button type="button" class="play-game-btn" id="play-today-btn">▶ &nbsp;Play Today's Drop</button>
     </div>
   </div>
 
   <!-- GAME -->
   <div class="screen" id="screen-game">
-    <div class="audio-start-overlay" id="audio-start-overlay" aria-hidden="true">
+    <div class="audio-start-overlay" id="audio-start-overlay" aria-hidden="true" role="dialog" aria-labelledby="audio-start-title" aria-modal="true">
       <div class="inner">
-        <h3>Tap to start audio</h3>
-        <p>Your browser blocked autoplay until you interact. Tap below to start the snippet.</p>
+        <h3 id="audio-start-title">Tap to hear the drop</h3>
+        <p id="audio-start-desc">On iPhone, your tap starts the clip (required by Safari).</p>
         <button type="button" id="audio-start-btn">▶ Start sound</button>
       </div>
     </div>
@@ -243,7 +250,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
     <div class="lives-row" id="lives-row"></div>
     <div class="player-card">
       <div class="player-inner">
-        <div class="snippet-label">🎧 30-second snippet — who made this?</div>
+        <div class="snippet-label">🎧 <span class="nobreak">30-second</span> snippet — who made this?</div>
         <div class="waveform-row">
           <div class="waveform" id="waveform"></div>
           <div class="snippet-timer" id="snippet-timer">0:30</div>
@@ -254,7 +261,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
           <button class="ctrl-btn" onclick="replaySnippet()" title="Replay">↺</button>
           <span style="font-size:0.72rem;color:var(--muted);margin-left:4px;">Pause · Replay from start</span>
         </div>
-        <iframe id="sc-iframe" allow="autoplay; encrypted-media"></iframe>
+        <iframe id="sc-iframe" title="SoundCloud player" allow="autoplay *; encrypted-media *; fullscreen *"></iframe>
         <div class="hint-zone" id="hint-zone" style="display:none;">
           <div class="hint-img-wrap">
             <img id="hint-img" src="" alt="artwork hint" />
@@ -309,10 +316,31 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 
 <script>
 /* ── SONGS ── */
-function makeScEmbedUrl(scUrl){
+function makeScEmbedUrl(scUrl, autoplay=true){
   // SoundCloud widget accepts the track URL via the `url=` query param.
   // `seekTo()` expects milliseconds, but embeds just need the track URL.
-  return `https://w.soundcloud.com/player/?url=${encodeURIComponent(scUrl)}&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false`;
+  const ap=autoplay?'true':'false';
+  return `https://w.soundcloud.com/player/?url=${encodeURIComponent(scUrl)}&auto_play=${ap}&hide_related=true&show_comments=false&show_user=false&visual=false`;
+}
+/** Coarse pointers: avoid silent iframe auto_play. */
+function shouldDeferEmbedAutoplay(){
+  try{
+    if(typeof matchMedia!=='undefined'&&matchMedia('(pointer: coarse)').matches)return true;
+  }catch(e){}
+  if(typeof navigator!=='undefined'&&/iPhone|iPod/i.test(navigator.userAgent))return true;
+  return false;
+}
+/** iOS Safari (incl. iPad): play() must run synchronously inside a real touch/click — never from setTimeout/setInterval (e.g. after READY). */
+function isIOSWebKit(){
+  const ua=typeof navigator!=='undefined'?navigator.userAgent||'':'';
+  const iOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  return iOS&&/AppleWebKit/.test(ua)&&!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+}
+function needsMandatoryTapForAudio(){
+  return shouldDeferEmbedAutoplay()||isIOSWebKit();
+}
+function embedUrlForGame(song){
+  return makeScEmbedUrl(song.scUrl,!needsMandatoryTapForAudio());
 }
 const SONGS = [
   {artist:"Illenium",track:"Broken Ones",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"),artworkUrl:"",scUrl:"https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"},
@@ -384,7 +412,11 @@ let playbackFallbackAttempts=0;
 let playbackConfirmed=false;
 let restartSnippetOnPlay=false;
 let currentArtworkUrl='';
+let prewarmedEmbedUrl=null;
+let playGate=false;
+let pendingInitialSeek=false;
 let autoplayWatchdogTimer=null;
+let scWidgetReady=false;
 // SoundCloud widget volume scaling varies by embed; 100 is reliably loud on this widget.
 const SC_VOLUME_LEVEL = 100;
 const DEBUG_SOUND = new URLSearchParams(window.location.search).get('debug') === '1';
@@ -410,27 +442,45 @@ function clearAutoplayWatchdog(){
 }
 function scheduleAutoplayWatchdog(){
   clearAutoplayWatchdog();
+  const ms=(typeof matchMedia!=='undefined'&&matchMedia('(pointer:coarse)').matches)?400:650;
   autoplayWatchdogTimer=setTimeout(()=>{
     autoplayWatchdogTimer=null;
     if(playbackConfirmed)return;
-    if(!scWidget)return;
-    try{
-      scWidget.isPaused((paused)=>{
-        if(playbackConfirmed)return;
-        if(paused)showAudioStartOverlay();
-      });
-    }catch(e){showAudioStartOverlay();}
-  },700);
+    showAudioStartOverlay();
+  },ms);
 }
+function unlockMobileAudio(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    const ctx=new AC();
+    const buf=ctx.createBuffer(1,1,22050);
+    const src=ctx.createBufferSource();
+    src.buffer=buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    if(ctx.state==='suspended')ctx.resume();
+  }catch(e){}
+}
+
 function userGestureStartAudio(){
-  hideAudioStartOverlay();
+  if(playbackConfirmed){
+    hideAudioStartOverlay();
+    return;
+  }
+  unlockMobileAudio();
   clearAutoplayWatchdog();
-  if(!scWidget)return;
+  if(!scWidget||!scWidgetReady){
+    dbgSound('tap before widget READY — keep overlay');
+    return;
+  }
+  hideAudioStartOverlay();
   try{
     scWidget.setVolume(SC_VOLUME_LEVEL);
     pendingSeekToStart=true;
     scWidget.play();
-  }catch(e){}
+    requestAnimationFrame(()=>{try{scWidget.play();}catch(e){}});
+  }catch(e){showAudioStartOverlay();}
 }
 
 function fallbackToNextSong(){
@@ -470,7 +520,7 @@ function checkOneTrack(song,timeoutMs=7000){
     const frame=document.createElement('iframe');
     frame.allow='autoplay; encrypted-media';
     frame.style.cssText='position:absolute;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
-    frame.src=song.scEmbedUrl;
+    frame.src=makeScEmbedUrl(song.scUrl,false);
     document.body.appendChild(frame);
 
     const widget=window.SC.Widget(frame);
@@ -516,31 +566,46 @@ async function runTrackHealthCheck(){
 function init(){
   const d=new Date();
   document.getElementById('date-pill').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  const audioOv=document.getElementById('audio-start-overlay');
+  const descEl=document.getElementById('audio-start-desc');
+  if(descEl)descEl.textContent=needsMandatoryTapForAudio()
+    ?'On iPhone/iPad, Safari needs one tap here to start sound — then the game runs as normal.'
+    :'Sound didn’t start automatically. Tap below (or anywhere here) to play.';
+  if(audioOv){
+    audioOv.addEventListener('click',userGestureStartAudio);
+    audioOv.addEventListener('touchend',e=>{e.preventDefault();userGestureStartAudio();},{passive:false});
+  }
   const audioStartBtn=document.getElementById('audio-start-btn');
-  if(audioStartBtn)audioStartBtn.addEventListener('click',userGestureStartAudio);
+  if(audioStartBtn)audioStartBtn.addEventListener('click',e=>{e.stopPropagation();userGestureStartAudio();});
+  const playTodayBtn=document.getElementById('play-today-btn');
+  if(playTodayBtn){
+    playTodayBtn.addEventListener('pointerdown',beginPlayWithAudio,{passive:true});
+    playTodayBtn.addEventListener('click',beginPlayWithAudio);
+  }
   if(HEALTHCHECK_MODE){runTrackHealthCheck();}
 }
 
 /* ── SCREENS ── */
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');}
 
-/* ── COUNTDOWN ── */
-function startCountdown(){
-  showScreen('countdown');
-  let count=3;
-  const disp=document.getElementById('countdown-display');
-  const lbl=document.getElementById('countdown-label');
-  disp.className='countdown-num';disp.textContent=count;lbl.textContent='Get ready...';
-  const tick=setInterval(()=>{
-    count--;
-    if(count>0){
-      disp.className='';void disp.offsetWidth;disp.className='countdown-num';disp.textContent=count;
-    } else {
-      clearInterval(tick);
-      disp.className='countdown-go';disp.textContent='GO!';lbl.textContent='Listen carefully!';
-      setTimeout(()=>launchGame(),700);
-    }
-  },900);
+/* Start game + SoundCloud in the same user gesture (iframe src + script kickoff, then launch immediately). */
+function beginPlayWithAudio(){
+  if(playGate)return;
+  playGate=true;
+  unlockMobileAudio();
+  const btn=document.getElementById('play-today-btn');
+  if(btn){btn.disabled=true;}
+  const url=embedUrlForGame(SONGS[initialSongIdx]);
+  prewarmedEmbedUrl=url;
+  const iframe=document.getElementById('sc-iframe');
+  iframe.src=url;
+  if(!window.SC&&!document.querySelector('script[data-sc-api="1"]')){
+    const s=document.createElement('script');
+    s.src='https://w.soundcloud.com/player/api.js';
+    s.dataset.scApi='1';
+    document.head.appendChild(s);
+  }
+  launchGame();
 }
 
 /* ── LAUNCH ── */
@@ -553,12 +618,17 @@ function launchGame(){
   currentArtworkUrl=currentSong.artworkUrl||'';
   playbackConfirmed=false;
   restartSnippetOnPlay=false;
+  pendingInitialSeek=false;
+  scWidgetReady=false;
   const wf=document.getElementById('waveform');wf.innerHTML='';
   for(let i=0;i<WAVE_BARS;i++){const b=document.createElement('div');b.className='wave-bar';b.style.height=(18+Math.random()*65)+'%';wf.appendChild(b);}
   renderLives();showScreen('game');
+  if(needsMandatoryTapForAudio())showAudioStartOverlay();
   document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
-  iframe.src=currentSong.scEmbedUrl;
+  const targetEmbed=embedUrlForGame(currentSong);
+  if(!(prewarmedEmbedUrl===targetEmbed&&iframe.src))iframe.src=targetEmbed;
+  prewarmedEmbedUrl=null;
   document.getElementById('hint-img').src=currentArtworkUrl;
 
   function initWidget(){
@@ -567,34 +637,78 @@ function launchGame(){
       // SoundCloud widget can ignore/behave oddly when seeking too early.
       // We only seek after playback actually begins.
       scWidget.bind(window.SC.Widget.Events.PLAY,()=>{
-        // Ensure volume is applied at the moment playback starts.
         try{scWidget.setVolume(SC_VOLUME_LEVEL);}catch(e){}
+        dbgSound('PLAY event');
+        if(pendingInitialSeek)return;
+        const isReplayRestart=restartSnippetOnPlay;
+        if(restartSnippetOnPlay)restartSnippetOnPlay=false;
         if(pendingSeekToStart){
           pendingSeekToStart=false;
-          // Some tracks are shorter than snippet start + 30s. Clamp so we can
-          // still play as much of the snippet window as possible.
+          pendingInitialSeek=true;
+          const seekDelayMs=needsMandatoryTapForAudio()?0:200;
+          setTimeout(()=>{
+            try{
+              scWidget.getDuration((durMs)=>{
+                const safeStart=Math.min(SNIPPET_START_MS,Math.max(0,durMs-(SNIPPET_DURATION*1000)));
+                try{scWidget.seekTo(safeStart);}catch(e2){}
+                dbgSound(`PLAY -> seekTo ${safeStart}ms (dur=${durMs}ms)`);
+                try{scWidget.play();}catch(e4){}
+                requestAnimationFrame(()=>{try{scWidget.play();}catch(e5){}});
+                if(!needsMandatoryTapForAudio()){
+                  try{scWidget.pause();}catch(e6){}
+                  setTimeout(()=>{
+                    try{scWidget.play();}catch(e7){}
+                    requestAnimationFrame(()=>{try{scWidget.play();}catch(e8){}});
+                  },50);
+                }
+                pendingInitialSeek=false;
+                if(isReplayRestart){
+                  startSnippetVisual();
+                }else if(!playbackConfirmed){
+                  playbackConfirmed=true;
+                  hideAudioStartOverlay();
+                  clearAutoplayWatchdog();
+                  startSnippetVisual();
+                  startGameTimer();
+                }
+              });
+            }catch(e){
+              pendingInitialSeek=false;
+              dbgSound('PLAY -> seekTo failed');
+              if(isReplayRestart){
+                startSnippetVisual();
+              }else if(!playbackConfirmed){
+                playbackConfirmed=true;
+                hideAudioStartOverlay();
+                clearAutoplayWatchdog();
+                startSnippetVisual();
+                startGameTimer();
+              }
+            }
+          },seekDelayMs);
           try{
-            scWidget.getDuration((durMs)=>{
-              const safeStart=Math.min(SNIPPET_START_MS,Math.max(0,durMs-(SNIPPET_DURATION*1000)));
-              try{scWidget.seekTo(safeStart);}catch(e2){}
-              dbgSound(`PLAY -> seekTo ${safeStart}ms (dur=${durMs}ms)`);
-            });
-          }catch(e){dbgSound('PLAY -> seekTo failed');}
+            scWidget.getVolume(v=>dbgSound(`widget volume=${v}`));
+            scWidget.getPosition(p=>dbgSound(`widget position=${p}ms`));
+          }catch(e3){}
+          return;
         }
-        dbgSound('PLAY event');
-        if(restartSnippetOnPlay){
-          restartSnippetOnPlay=false;
+        if(isReplayRestart){
           startSnippetVisual();
-        } else if(!playbackConfirmed){
+          try{
+            scWidget.getVolume(v=>dbgSound(`widget volume=${v}`));
+            scWidget.getPosition(p=>dbgSound(`widget position=${p}ms`));
+          }catch(e3){}
+          return;
+        }
+        if(!playbackConfirmed){
           playbackConfirmed=true;
           hideAudioStartOverlay();
           clearAutoplayWatchdog();
           startSnippetVisual();
           startGameTimer();
-        } else if(!isPlaying){
+        }else if(!isPlaying){
           resumeSnippetVisual();
         }
-        // Extra debug: confirm widget reports volume/position changes.
         try{
           scWidget.getVolume(v=>dbgSound(`widget volume=${v}`));
           scWidget.getPosition(p=>dbgSound(`widget position=${p}ms`));
@@ -604,6 +718,7 @@ function launchGame(){
         dbgSound('PAUSE event');
       });
       scWidget.bind(window.SC.Widget.Events.READY,()=>{
+        scWidgetReady=true;
         scWidget.setVolume(SC_VOLUME_LEVEL);
         dbgSound(`READY: ${currentSong.artist} - ${currentSong.track}`);
         try{
@@ -615,7 +730,10 @@ function launchGame(){
           });
         }catch(e){}
         pendingSeekToStart=true;
-        scWidget.play();
+        if(!needsMandatoryTapForAudio()){
+          scWidget.play();
+          requestAnimationFrame(()=>{try{scWidget.play();}catch(e){}});
+        }
         scheduleAutoplayWatchdog();
       });
       scWidget.bind(window.SC.Widget.Events.ERROR,()=>{
@@ -624,20 +742,39 @@ function launchGame(){
           hideAudioStartOverlay();
           clearAutoplayWatchdog();
           pendingSeekToStart=false;
+          pendingInitialSeek=false;
+          scWidgetReady=false;
           playbackConfirmed=false;
           clearInterval(snippetInterval);
           isPlaying=false;
           const iframeEl=document.getElementById('sc-iframe');
-          iframeEl.src=currentSong.scEmbedUrl;
+          iframeEl.src=embedUrlForGame(currentSong);
           document.getElementById('hint-img').src=currentArtworkUrl||'';
-          setTimeout(()=>initWidget(),300);
+          setTimeout(()=>{
+            initWidget();
+            if(needsMandatoryTapForAudio())showAudioStartOverlay();
+          },300);
         }
       });
     } else {startSnippetVisual();startGameTimer();}
   }
 
-  if(window.SC){initWidget();}
-  else{const s=document.createElement('script');s.src='https://w.soundcloud.com/player/api.js';s.onload=initWidget;document.head.appendChild(s);}
+  function runInitWhenScReady(){
+    if(window.SC){initWidget();return;}
+    const kick=()=>{if(window.SC)initWidget();};
+    const existing=document.querySelector('script[data-sc-api="1"]');
+    if(existing){
+      existing.addEventListener('load',kick,{once:true});
+      queueMicrotask(kick);
+    }else{
+      const s=document.createElement('script');
+      s.src='https://w.soundcloud.com/player/api.js';
+      s.dataset.scApi='1';
+      s.addEventListener('load',kick,{once:true});
+      document.head.appendChild(s);
+    }
+  }
+  runInitWhenScReady();
 }
 
 /* ── GAME TIMER ── */
@@ -814,6 +951,11 @@ function resetToStart(){
   document.getElementById('guess-history').innerHTML='';
   document.getElementById('game-timer-val').textContent='0:00.0';
   document.getElementById('sc-iframe').src='';
+  prewarmedEmbedUrl=null;
+  playGate=false;
+  scWidgetReady=false;
+  const pt=document.getElementById('play-today-btn');
+  if(pt){pt.disabled=false;}
   showScreen('start');
 }
 
