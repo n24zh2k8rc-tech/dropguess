@@ -53,6 +53,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .start-desc { color:var(--muted); font-size:0.88rem; line-height:1.6; margin-bottom:2rem; max-width:340px; margin-left:auto; margin-right:auto; }
 .play-game-btn { display:inline-flex; align-items:center; gap:10px; padding:16px 40px; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:700; border:none; border-radius:14px; cursor:pointer; letter-spacing:0.04em; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 0 30px rgba(0,245,212,0.25); }
 .play-game-btn:hover { transform:scale(1.05); box-shadow:0 0 50px rgba(0,245,212,0.4); }
+.challenge-home { display:none; width:100%; flex-direction:column; align-items:center; gap:1.25rem; }
 
 /* GAME */
 .game-timer-wrap { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 20px; }
@@ -203,46 +204,44 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
       <div class="start-desc">A <span class="nobreak">30-second</span> EDM snippet will play. Guess the artist before your 3 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
       <button type="button" class="play-game-btn" id="play-today-btn">▶ &nbsp;Play Today's Drop</button>
     </div>
-  </div>
-
-  <!-- GAME -->
-  <div class="screen" id="screen-game">
-    <div class="game-timer-wrap">
+    <div id="challenge-home" class="challenge-home">
+      <div class="game-timer-wrap">
       <div class="game-timer-label">⏱ Your time</div>
       <div class="game-timer-val" id="game-timer-val">0:00.0</div>
-    </div>
-    <div class="lives-row" id="lives-row"></div>
-    <div class="player-card">
-      <div class="player-inner">
-        <div class="snippet-label">🎧 <span class="nobreak">30-second</span> snippet — who made this?</div>
-        <div class="waveform-row">
-          <div class="waveform" id="waveform"></div>
-          <div class="snippet-timer" id="snippet-timer">0:30</div>
-        </div>
-        <div id="debug-soundcloud" style="display:none;margin-top:-6px;font-size:0.75rem;color:var(--muted);text-align:right;white-space:pre-line;"></div>
-        <div class="controls-row">
-          <button class="ctrl-btn primary" id="play-pause-btn" onclick="togglePlayPause()">⏸</button>
-          <button class="ctrl-btn" onclick="replaySnippet()" title="Replay">↺</button>
-          <span style="font-size:0.72rem;color:var(--muted);margin-left:4px;">Pause · Replay from start</span>
-        </div>
-        <iframe id="sc-iframe" title="SoundCloud player" allow="autoplay *; encrypted-media *; fullscreen *"></iframe>
-        <div class="hint-zone" id="hint-zone" style="display:none;">
-          <div class="hint-img-wrap">
-            <img id="hint-img" src="" alt="artwork hint" />
-            <div class="hint-label">Artwork hint</div>
+      </div>
+      <div class="lives-row" id="lives-row"></div>
+      <div class="player-card">
+        <div class="player-inner">
+          <div class="snippet-label">🎧 <span class="nobreak">30-second</span> snippet — who made this?</div>
+          <div class="waveform-row">
+            <div class="waveform" id="waveform"></div>
+            <div class="snippet-timer" id="snippet-timer">0:30</div>
           </div>
-          <button class="hint-btn" id="hint-btn" onclick="revealHint()">👁 Reveal artwork hint</button>
+          <div id="debug-soundcloud" style="display:none;margin-top:-6px;font-size:0.75rem;color:var(--muted);text-align:right;white-space:pre-line;"></div>
+          <div class="controls-row">
+            <button class="ctrl-btn primary" id="play-pause-btn" onclick="togglePlayPause()">⏸</button>
+            <button class="ctrl-btn" onclick="replaySnippet()" title="Replay">↺</button>
+            <span style="font-size:0.72rem;color:var(--muted);margin-left:4px;">Pause · Replay from start</span>
+          </div>
+          <iframe id="sc-iframe" title="SoundCloud player" allow="autoplay *; encrypted-media *; fullscreen *"></iframe>
+          <div class="hint-zone" id="hint-zone" style="display:none;">
+            <div class="hint-img-wrap">
+              <img id="hint-img" src="" alt="artwork hint" />
+              <div class="hint-label">Artwork hint</div>
+            </div>
+            <button class="hint-btn" id="hint-btn" onclick="revealHint()">👁 Reveal artwork hint</button>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="guess-zone" id="guess-zone">
-      <div class="autocomplete-wrap">
-        <input class="guess-input" id="guess-input" type="text" placeholder="Type an artist name..." autocomplete="off" oninput="onInput()" onkeydown="onKeyDown(event)" />
-        <button class="submit-arrow" onclick="submitGuess()">→</button>
-        <div class="autocomplete-list" id="autocomplete-list"></div>
+      <div class="guess-zone" id="guess-zone">
+        <div class="autocomplete-wrap">
+          <input class="guess-input" id="guess-input" type="text" placeholder="Type an artist name..." autocomplete="off" oninput="onInput()" onkeydown="onKeyDown(event)" />
+          <button class="submit-arrow" onclick="submitGuess()">→</button>
+          <div class="autocomplete-list" id="autocomplete-list"></div>
+        </div>
       </div>
+      <div class="guess-history" id="guess-history"></div>
     </div>
-    <div class="guess-history" id="guess-history"></div>
   </div>
 
   <!-- RESULT -->
@@ -493,7 +492,8 @@ function launchGame(){
   scWidgetReady=false;
   const wf=document.getElementById('waveform');wf.innerHTML='';
   for(let i=0;i<WAVE_BARS;i++){const b=document.createElement('div');b.className='wave-bar';b.style.height=(18+Math.random()*65)+'%';wf.appendChild(b);}
-  renderLives();showScreen('game');
+  renderLives();
+  document.getElementById('challenge-home').style.display='flex';
   document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
   const targetEmbed=currentSong.scEmbedUrl;
@@ -799,6 +799,9 @@ function resetToStart(){
   currentSong=SONGS[currentSongIdx];
   clearInterval(gameTimerInterval);clearInterval(snippetInterval);
   document.getElementById('guess-history').innerHTML='';
+  document.getElementById('guess-zone').style.display='block';
+  document.getElementById('challenge-home').style.display='none';
+  document.getElementById('hint-zone').style.display='none';
   document.getElementById('game-timer-val').textContent='0:00.0';
   document.getElementById('sc-iframe').src='';
   playGate=false;
