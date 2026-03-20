@@ -254,11 +254,10 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
     <div class="start-card">
       <div class="date-pill" id="date-pill"></div>
       <div class="start-disc"><img class="start-disc-gif" src="pedro_icon.gif?v=2" alt="Music" /></div>
-      <div class="start-desc">A <span class="nobreak">30-SECOND</span> EDM SNIPPET WILL PLAY. GUESS THE ARTIST BEFORE YOUR 3 LIVES RUN OUT.</div>
+      <div class="daily-locked-msg" id="post-play-msg" style="display:none;">Thank you for playing! Come back tomorrow.</div>
       <button type="button" class="play-game-btn" id="play-today-btn">▶ &nbsp;Play Today's Drop</button>
     </div>
     <div class="daily-locked" id="daily-locked" style="display:none;">
-      <div class="daily-locked-msg">Thank you for playing! Come back tomorrow.</div>
       <div class="leaderboard-card daily-locked-lb">
         <div class="lb-header">
           <div><div class="lb-title">🏆 Leaderboard</div><div class="lb-subtitle">Today's fastest guesses</div></div>
@@ -550,11 +549,20 @@ function renderLB(el,scores,highlightTs=null){
 function applyDailyLockUI(){
   const lockedWrap=document.getElementById('daily-locked');
   const playTodayBtn=document.getElementById('play-today-btn');
+  const postPlayMsg=document.getElementById('post-play-msg');
   if(lockedWrap) lockedWrap.style.display=dailyLockedToday?'flex':'none';
   if(playTodayBtn){
-    playTodayBtn.disabled=dailyLockedToday;
-    if(dailyLockedToday) playTodayBtn.innerHTML='▶ &nbsp;Come back tomorrow';
-    else playTodayBtn.innerHTML='▶ &nbsp;Play Today\'s Drop';
+    if(dailyLockedToday){
+      playTodayBtn.disabled=true;
+      playTodayBtn.style.display='none';
+    }else{
+      playTodayBtn.disabled=false;
+      playTodayBtn.style.display='inline-flex';
+      playTodayBtn.innerHTML='▶ &nbsp;Play Today\'s Drop';
+    }
+  }
+  if(postPlayMsg){
+    postPlayMsg.style.display=dailyLockedToday?'block':'none';
   }
   if(dailyLockedToday) loadLeaderboard('lb-start-list');
 }
