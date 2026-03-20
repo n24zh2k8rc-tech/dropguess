@@ -429,8 +429,10 @@ let currentSongIdx=initialSongIdx;
 let currentSong=SONGS[currentSongIdx];
 
 /* ── LEADERBOARD ── */
-const LB_KEY=`dropguess-lb-${TODAY_KEY}`;
-const PLAYED_KEY=`dropguess-played-${TODAY_KEY}`;
+// Increment DATA_VERSION to effectively reset all users' stored state (lock + leaderboard).
+const DATA_VERSION = '1';
+const LB_KEY=`dropguess-v${DATA_VERSION}-lb-${TODAY_KEY}`;
+const PLAYED_KEY=`dropguess-v${DATA_VERSION}-played-${TODAY_KEY}`;
 
 // Some deployments may not define `window.storage`. Fall back to `localStorage` so scores persist.
 const storage = (() => {
