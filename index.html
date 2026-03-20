@@ -357,7 +357,13 @@ function isMobileTablet(){
   return false;
 }
 function embedUrlForGame(song){
-  return makeScEmbedUrl(song.scUrl,!needsMandatoryTapForAudio());
+  // iOS Safari: avoid first-time seekTo silence by starting the iframe at the snippet start.
+  // SoundCloud supports time fragments for the track URL.
+  let scUrl=song.scUrl;
+  if(isIOSWebKit()){
+    if(!/#t=/.test(scUrl)) scUrl=scUrl+`#t=45s`;
+  }
+  return makeScEmbedUrl(scUrl,!needsMandatoryTapForAudio());
 }
 const SONGS = [
   {artist:"Illenium",track:"Broken Ones",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"),artworkUrl:"",scUrl:"https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"},
@@ -742,9 +748,23 @@ function launchGame(){
             }
           };
 
-          // Avoid setTimeout even with 0ms on iOS; keep this closer to the user tap path.
-          if(needsMandatoryTapForAudio())runSeek();
-          else setTimeout(runSeek,200);
+          // iOS: for the initial start (not replay), avoid seekTo() to prevent silent audio.
+          if(needsMandatoryTapForAudio() && !isReplayRestart){
+            pendingInitialSeek=false;
+            if(isReplayRestart){
+              startSnippetVisual();
+            }else if(!playbackConfirmed){
+              playbackConfirmed=true;
+              hideAudioStartOverlay();
+              clearAutoplayWatchdog();
+              startSnippetVisual();
+              startGameTimer();
+            }
+          } else {
+            // Avoid setTimeout even with 0ms on iOS; keep this closer to the user tap path.
+            if(needsMandatoryTapForAudio())runSeek();
+            else setTimeout(runSeek,200);
+          }
           try{
             scWidget.getVolume(v=>dbgSound(`widget volume=${v}`));
             scWidget.getPosition(p=>dbgSound(`widget position=${p}ms`));
