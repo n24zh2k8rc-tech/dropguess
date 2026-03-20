@@ -33,14 +33,14 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .tagline { font-size:0.75rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); margin-top:0.2rem; }
 .nobreak { white-space:nowrap; }
 .footer-daily-pill { margin-top:auto; width:100%; display:flex; justify-content:center; padding-top:1rem; padding-bottom:max(0.5rem, env(safe-area-inset-bottom)); }
-.date-pill { display:inline-block; padding:4px 14px; border:1px solid var(--border); border-radius:20px; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; }
+.date-pill { display:inline-block; padding:4px 14px; border:1px solid var(--border); border-radius:20px; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; white-space:nowrap; line-height:1.1; }
 .start-card .date-pill { margin:0 auto 1.25rem; border-color:rgba(0,245,212,0.55); color:var(--cyan); box-shadow:0 0 18px rgba(0,245,212,0.15); }
 .date-pill--daily { border-color:rgba(96,96,160,0.4); color:var(--muted); letter-spacing:0.12em; text-transform:uppercase; }
 
 /* SCREENS */
 .screen { display:none; width:100%; flex-direction:column; align-items:center; gap:1.25rem; }
 .screen.active { display:flex; }
-#screen-start { gap:0.85rem; }
+#screen-start { gap:1.25rem; }
 #screen-game { flex:1; }
 
 /* START */
