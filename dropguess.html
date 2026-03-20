@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drop Guess — Daily EDM Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#06060f; --surface:#0d0d1c; --card:#121220; --border:rgba(255,255,255,0.07);
+  --text:#eeeeff; --muted:#6060a0; --cyan:#00f5d4; --pink:#ff2d78;
+  --yellow:#ffe600; --orange:#ff6b00; --purple:#9b5de5; --green:#00e676;
+  --red:#ff1744; --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32;
+}
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,245,212,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,212,0.025) 1px,transparent 1px); background-size:44px 44px; pointer-events:none; z-index:0; }
+.orb { position:fixed; border-radius:50%; filter:blur(90px); pointer-events:none; z-index:0; animation:drift 14s ease-in-out infinite alternate; }
+.orb1 { width:500px; height:500px; background:rgba(255,45,120,0.10); top:-150px; left:-150px; }
+.orb2 { width:400px; height:400px; background:rgba(0,245,212,0.08); bottom:-100px; right:-100px; animation-delay:-7s; }
+.orb3 { width:300px; height:300px; background:rgba(155,93,229,0.10); top:35%; left:25%; animation-delay:-4s; }
+@keyframes drift { from{transform:translate(0,0) scale(1);} to{transform:translate(40px,25px) scale(1.12);} }
+.wrapper { position:relative; z-index:1; width:100%; max-width:580px; padding:2rem 1.5rem 5rem; display:flex; flex-direction:column; align-items:center; gap:1.25rem; }
+
+/* HEADER */
+header { text-align:center; width:100%; }
+.logo { font-family:'Bebas Neue',sans-serif; font-size:clamp(3.2rem,13vw,5.5rem); letter-spacing:0.06em; line-height:1; background:linear-gradient(135deg,var(--cyan) 0%,var(--pink) 50%,var(--yellow) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 40px rgba(0,245,212,0.25)); }
+.tagline { font-size:0.75rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); margin-top:0.2rem; }
+.date-pill { display:inline-block; margin-top:0.6rem; padding:4px 14px; border:1px solid var(--border); border-radius:20px; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; }
+
+/* SCREENS */
+.screen { display:none; width:100%; flex-direction:column; align-items:center; gap:1.25rem; }
+.screen.active { display:flex; }
+
+/* START */
+.start-card { width:100%; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:2.5rem 2rem; text-align:center; position:relative; overflow:hidden; }
+.start-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--cyan),var(--pink),var(--yellow),var(--cyan)); background-size:200% 100%; animation:shimmer 3s linear infinite; }
+@keyframes shimmer { from{background-position:200% 0;} to{background-position:-200% 0;} }
+.start-disc { width:100px; height:100px; border-radius:50%; background:conic-gradient(var(--cyan),var(--purple),var(--pink),var(--yellow),var(--cyan)); margin:0 auto 1.5rem; display:flex; align-items:center; justify-content:center; animation:spin 8s linear infinite; box-shadow:0 0 40px rgba(0,245,212,0.2); }
+@keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+.start-disc-inner { width:42px; height:42px; border-radius:50%; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:1.1rem; animation:spinR 8s linear infinite; }
+@keyframes spinR { from{transform:rotate(0deg);} to{transform:rotate(-360deg);} }
+.start-title { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:0.06em; margin-bottom:0.5rem; }
+.start-desc { color:var(--muted); font-size:0.88rem; line-height:1.6; margin-bottom:2rem; max-width:340px; margin-left:auto; margin-right:auto; }
+.play-game-btn { display:inline-flex; align-items:center; gap:10px; padding:16px 40px; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:700; border:none; border-radius:14px; cursor:pointer; letter-spacing:0.04em; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 0 30px rgba(0,245,212,0.25); }
+.play-game-btn:hover { transform:scale(1.05); box-shadow:0 0 50px rgba(0,245,212,0.4); }
+
+/* COUNTDOWN */
+.countdown-wrap { text-align:center; padding:3rem 0; }
+.countdown-num { font-family:'Bebas Neue',sans-serif; font-size:10rem; line-height:1; background:linear-gradient(135deg,var(--cyan),var(--pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:countPop 0.9s cubic-bezier(0.34,1.56,0.64,1); filter:drop-shadow(0 0 40px rgba(0,245,212,0.4)); }
+.countdown-go { font-family:'Bebas Neue',sans-serif; font-size:6rem; line-height:1; background:linear-gradient(135deg,var(--yellow),var(--orange)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:countPop 0.5s cubic-bezier(0.34,1.56,0.64,1); filter:drop-shadow(0 0 40px rgba(255,230,0,0.5)); }
+@keyframes countPop { from{transform:scale(0.3);opacity:0;} to{transform:scale(1);opacity:1;} }
+.countdown-label { font-size:0.8rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-top:0.5rem; }
+
+/* GAME */
+.game-timer-wrap { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 20px; }
+.game-timer-label { font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); }
+.game-timer-val { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:0.05em; color:var(--cyan); min-width:80px; text-align:center; }
+.lives-row { display:flex; gap:8px; justify-content:center; }
+.life { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; border:1.5px solid rgba(255,45,120,0.35); background:rgba(255,45,120,0.08); transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+.life.lost { border-color:rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); filter:grayscale(1); transform:scale(0.82); }
+
+/* PLAYER */
+.player-card { width:100%; background:var(--card); border:1px solid var(--border); border-radius:20px; overflow:hidden; position:relative; }
+.player-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--cyan),var(--pink),var(--yellow),var(--cyan)); background-size:200% 100%; animation:shimmer 3s linear infinite; }
+.player-inner { padding:1.4rem; }
+.snippet-label { text-align:center; font-size:0.7rem; color:var(--muted); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:1rem; }
+.waveform-row { display:flex; align-items:center; gap:12px; margin-bottom:1rem; }
+.waveform { flex:1; height:52px; display:flex; align-items:center; gap:2px; }
+.wave-bar { flex:1; border-radius:2px; background:rgba(0,245,212,0.15); transition:background 0.2s; min-height:4px; }
+.wave-bar.played { background:linear-gradient(to top,var(--cyan),var(--purple)); }
+.wave-bar.active { background:var(--cyan); animation:pulseBar 0.35s ease-in-out infinite alternate; }
+@keyframes pulseBar { from{opacity:0.6;} to{opacity:1;} }
+.snippet-timer { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:var(--cyan); letter-spacing:0.05em; min-width:46px; text-align:right; }
+.controls-row { display:flex; align-items:center; gap:10px; }
+.ctrl-btn { width:44px; height:44px; border-radius:50%; border:1.5px solid var(--border); background:rgba(255,255,255,0.05); color:var(--text); font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.ctrl-btn:hover { border-color:var(--cyan); color:var(--cyan); background:rgba(0,245,212,0.08); }
+.ctrl-btn.primary { width:52px; height:52px; font-size:1.2rem; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; border:none; box-shadow:0 0 20px rgba(0,245,212,0.25); }
+.ctrl-btn.primary:hover { transform:scale(1.07); }
+.hint-zone { text-align:center; margin-top:1rem; }
+.hint-img-wrap { display:inline-block; position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--border); }
+.hint-img-wrap img { width:110px; height:110px; object-fit:cover; filter:blur(18px) brightness(0.5); transition:filter 1.2s ease; display:block; }
+.hint-img-wrap img.revealed { filter:none; }
+.hint-label { position:absolute; bottom:5px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+.hint-btn { margin-top:7px; background:none; border:1px solid var(--orange); color:var(--orange); border-radius:8px; padding:5px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer; }
+#sc-iframe { display:none; }
+
+/* GUESS */
+.guess-zone { width:100%; }
+.autocomplete-wrap { position:relative; }
+.guess-input { width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:14px 52px 14px 18px; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:1rem; outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
+.guess-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(0,245,212,0.10); }
+.guess-input::placeholder { color:var(--muted); }
+.submit-arrow { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:var(--cyan); border:none; border-radius:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1rem; color:#000; font-weight:700; transition:background 0.2s; }
+.autocomplete-list { position:absolute; top:calc(100% + 6px); left:0; right:0; background:#1a1a30; border:1px solid var(--border); border-radius:12px; overflow:hidden; z-index:50; max-height:190px; overflow-y:auto; display:none; }
+.autocomplete-list.open { display:block; }
+.autocomplete-item { padding:10px 18px; cursor:pointer; font-size:0.88rem; transition:background 0.12s; border-bottom:1px solid var(--border); }
+.autocomplete-item:last-child { border-bottom:none; }
+.autocomplete-item:hover,.autocomplete-item.hl { background:rgba(0,245,212,0.08); color:var(--cyan); }
+.guess-history { width:100%; display:flex; flex-direction:column; gap:7px; }
+.guess-pill { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 13px; animation:slideIn 0.28s ease; }
+@keyframes slideIn { from{opacity:0;transform:translateY(-7px);} to{opacity:1;transform:translateY(0);} }
+.gicon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+.gicon.wrong { background:rgba(255,23,68,0.18); color:var(--red); }
+.gicon.correct { background:rgba(0,230,118,0.18); color:var(--green); }
+.gtext { font-size:0.88rem; color:var(--muted); flex:1; }
+.gnum { font-size:0.72rem; color:rgba(255,255,255,0.18); }
+
+/* RESULT */
+.result-card { width:100%; border-radius:22px; padding:2rem 1.5rem; text-align:center; animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); border:1px solid var(--border); }
+@keyframes popIn { from{opacity:0;transform:scale(0.82);} to{opacity:1;transform:scale(1);} }
+.result-card.win { background:linear-gradient(135deg,rgba(0,230,118,0.12),rgba(0,245,212,0.08)); border-color:rgba(0,230,118,0.25); }
+.result-card.lose { background:linear-gradient(135deg,rgba(255,23,68,0.10),rgba(155,93,229,0.08)); border-color:rgba(255,23,68,0.2); }
+.result-emoji { font-size:2.8rem; margin-bottom:0.4rem; }
+.result-reveal-img { width:130px; height:130px; border-radius:14px; object-fit:cover; margin:0 auto 1rem; display:block; border:2px solid rgba(255,255,255,0.1); }
+.result-title { font-family:'Bebas Neue',sans-serif; font-size:2.4rem; letter-spacing:0.05em; margin-bottom:0.2rem; }
+.result-card.win .result-title { color:var(--cyan); }
+.result-card.lose .result-title { color:var(--pink); }
+.result-artist { font-size:1.25rem; font-weight:700; margin-bottom:0.2rem; }
+.result-track { font-size:0.82rem; color:var(--muted); margin-bottom:0.4rem; }
+.result-time { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; color:var(--yellow); letter-spacing:0.05em; margin-bottom:1rem; }
+.nickname-wrap { margin-bottom:1rem; }
+.nickname-wrap label { display:block; font-size:0.75rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.nickname-row { display:flex; gap:8px; }
+.nickname-input { flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:0.9rem; outline:none; transition:border-color 0.2s; }
+.nickname-input:focus { border-color:var(--cyan); }
+.nickname-input::placeholder { color:var(--muted); }
+.submit-score-btn { padding:10px 18px; background:var(--cyan); color:#000; border:none; border-radius:10px; font-weight:700; font-size:0.88rem; cursor:pointer; white-space:nowrap; font-family:'Plus Jakarta Sans',sans-serif; }
+.sc-link { display:inline-flex; align-items:center; gap:8px; padding:10px 22px; background:#ff5500; color:#fff; border-radius:10px; text-decoration:none; font-weight:700; font-size:0.88rem; transition:opacity 0.2s; }
+.sc-link:hover { opacity:0.9; }
+.play-again-btn { margin-top:0.75rem; display:inline-block; padding:9px 20px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--muted); font-family:'Plus Jakarta Sans',sans-serif; font-size:0.82rem; cursor:pointer; transition:border-color 0.2s,color 0.2s; }
+.play-again-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+
+/* LEADERBOARD */
+.leaderboard-card { width:100%; background:var(--card); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+.lb-header { padding:1rem 1.25rem 0.75rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.lb-title { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:0.06em; color:var(--yellow); }
+.lb-subtitle { font-size:0.7rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; }
+.lb-refresh { background:none; border:1px solid var(--border); border-radius:8px; color:var(--muted); padding:4px 10px; font-size:0.72rem; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; transition:all 0.2s; }
+.lb-refresh:hover { border-color:var(--cyan); color:var(--cyan); }
+.lb-list { padding:0.5rem 0; max-height:280px; overflow-y:auto; }
+.lb-row { display:flex; align-items:center; gap:10px; padding:9px 1.25rem; transition:background 0.15s; }
+.lb-row:hover { background:rgba(255,255,255,0.02); }
+.lb-rank { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; min-width:28px; text-align:center; }
+.lb-rank.r1 { color:var(--gold); }
+.lb-rank.r2 { color:var(--silver); }
+.lb-rank.r3 { color:var(--bronze); }
+.lb-rank.rn { color:var(--muted); }
+.lb-name { font-size:0.88rem; font-weight:600; flex:1; }
+.lb-meta { font-size:0.7rem; color:var(--muted); }
+.lb-time { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; color:var(--cyan); letter-spacing:0.04em; }
+.lb-empty { padding:1.5rem; text-align:center; color:var(--muted); font-size:0.85rem; }
+.lb-loading { padding:1.5rem; text-align:center; color:var(--muted); font-size:0.82rem; }
+
+@keyframes shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(8px);} 60%{transform:translateX(-5px);} 80%{transform:translateX(5px);} }
+.shake { animation:shake 0.38s ease; }
+.autocomplete-list::-webkit-scrollbar,.lb-list::-webkit-scrollbar { width:3px; }
+.autocomplete-list::-webkit-scrollbar-thumb,.lb-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">Drop Guess</div>
+    <div class="tagline">Identify the artist from a 30-second drop</div>
+    <div class="date-pill" id="date-pill"></div>
+  </header>
+
+  <!-- START -->
+  <div class="screen active" id="screen-start">
+    <div class="start-card">
+      <div class="start-disc"><div class="start-disc-inner">🎵</div></div>
+      <div class="start-title">Ready to Drop?</div>
+      <div class="start-desc">A 30-second EDM snippet will play. Guess the artist before your 6 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
+      <button class="play-game-btn" onclick="startCountdown()">▶ &nbsp;Play Today's Drop</button>
+    </div>
+    <div class="leaderboard-card">
+      <div class="lb-header">
+        <div><div class="lb-title">🏆 Leaderboard</div><div class="lb-subtitle">Today's fastest guesses</div></div>
+        <button class="lb-refresh" onclick="loadLeaderboard('lb-start-list')">↺ Refresh</button>
+      </div>
+      <div class="lb-list" id="lb-start-list"><div class="lb-loading">Loading scores...</div></div>
+    </div>
+  </div>
+
+  <!-- COUNTDOWN -->
+  <div class="screen" id="screen-countdown">
+    <div class="countdown-wrap">
+      <div id="countdown-display" class="countdown-num">3</div>
+      <div class="countdown-label" id="countdown-label">Get ready...</div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+    <div class="game-timer-wrap">
+      <div class="game-timer-label">⏱ Your time</div>
+      <div class="game-timer-val" id="game-timer-val">0:00.0</div>
+    </div>
+    <div class="lives-row" id="lives-row"></div>
+    <div class="player-card">
+      <div class="player-inner">
+        <div class="snippet-label">🎧 30-second snippet — who made this?</div>
+        <div class="waveform-row">
+          <div class="waveform" id="waveform"></div>
+          <div class="snippet-timer" id="snippet-timer">0:30</div>
+        </div>
+        <div class="controls-row">
+          <button class="ctrl-btn primary" id="play-pause-btn" onclick="togglePlayPause()">⏸</button>
+          <button class="ctrl-btn" onclick="replaySnippet()" title="Replay">↺</button>
+          <span style="font-size:0.72rem;color:var(--muted);margin-left:4px;">Pause · Replay from start</span>
+        </div>
+        <iframe id="sc-iframe" allow="autoplay"></iframe>
+        <div class="hint-zone" id="hint-zone" style="display:none;">
+          <div class="hint-img-wrap">
+            <img id="hint-img" src="" alt="artwork hint" />
+            <div class="hint-label">Artwork hint</div>
+          </div>
+          <button class="hint-btn" id="hint-btn" onclick="revealHint()">👁 Reveal artwork hint</button>
+        </div>
+      </div>
+    </div>
+    <div class="guess-zone" id="guess-zone">
+      <div class="autocomplete-wrap">
+        <input class="guess-input" id="guess-input" type="text" placeholder="Type an artist name..." autocomplete="off" oninput="onInput()" onkeydown="onKeyDown(event)" />
+        <button class="submit-arrow" onclick="submitGuess()">→</button>
+        <div class="autocomplete-list" id="autocomplete-list"></div>
+      </div>
+    </div>
+    <div class="guess-history" id="guess-history"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="result-card" id="result-card">
+      <div class="result-emoji" id="result-emoji"></div>
+      <img class="result-reveal-img" id="result-img" src="" alt="" />
+      <div class="result-title" id="result-title"></div>
+      <div class="result-artist" id="result-artist"></div>
+      <div class="result-track" id="result-track"></div>
+      <div class="result-time" id="result-time"></div>
+      <div class="nickname-wrap" id="nickname-wrap" style="display:none;">
+        <label>Enter your name for the leaderboard</label>
+        <div class="nickname-row">
+          <input class="nickname-input" id="nickname-input" type="text" placeholder="Your name..." maxlength="20" />
+          <button class="submit-score-btn" onclick="submitScore()">Submit →</button>
+        </div>
+      </div>
+      <a class="sc-link" id="sc-link" href="#" target="_blank" rel="noopener">🔊 Listen on SoundCloud</a>
+      <br>
+      <button class="play-again-btn" onclick="resetToStart()">← Back to start</button>
+    </div>
+    <div class="leaderboard-card">
+      <div class="lb-header">
+        <div><div class="lb-title">🏆 Leaderboard</div><div class="lb-subtitle">Today's fastest guesses</div></div>
+        <button class="lb-refresh" onclick="loadLeaderboard('lb-result-list')">↺ Refresh</button>
+      </div>
+      <div class="lb-list" id="lb-result-list"><div class="lb-loading">Loading scores...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── SONGS ── */
+const SONGS = [
+  {artist:"Martin Garrix",track:"Animals",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/104274938&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000060864750-3k5xg8-t500x500.jpg",scUrl:"https://soundcloud.com/martingarrix/animals-original-mix"},
+  {artist:"Avicii",track:"Levels",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/14416179&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000013430512-fnq1lh-t500x500.jpg",scUrl:"https://soundcloud.com/aviciiofficial/avicii-levels"},
+  {artist:"Skrillex",track:"Bangarang",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/65014730&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000036084436-qd1cxs-t500x500.jpg",scUrl:"https://soundcloud.com/skrillex/skrillex-bangarang-feat-sirah"},
+  {artist:"Deadmau5",track:"Strobe",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/822955&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000003513903-a2lbqh-t500x500.jpg",scUrl:"https://soundcloud.com/deadmau5/strobe"},
+  {artist:"Calvin Harris",track:"Summer",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/153966156&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000082056616-kvhlke-t500x500.jpg",scUrl:"https://soundcloud.com/calvinharris/summer"},
+  {artist:"Daft Punk",track:"Get Lucky",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/91928813&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000050758745-k1i5qg-t500x500.jpg",scUrl:"https://soundcloud.com/daftpunk/get-lucky-radio-edit"},
+  {artist:"Zedd",track:"Clarity",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/60270782&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000033648098-j2lkzv-t500x500.jpg",scUrl:"https://soundcloud.com/zedd/zedd-clarity-feat-foxes"},
+  {artist:"Tiesto",track:"Red Lights",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/168971228&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000091948825-c6mvtq-t500x500.jpg",scUrl:"https://soundcloud.com/tiesto/tiesto-red-lights"},
+  {artist:"Marshmello",track:"Alone",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/270244852&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000174671446-5vzesg-t500x500.jpg",scUrl:"https://soundcloud.com/marshmellomusic/marshmello-alone"},
+  {artist:"Kygo",track:"Firestone",scEmbedUrl:"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/185873761&auto_play=false&hide_related=true&show_comments=false&show_user=false&visual=false",artworkUrl:"https://i1.sndcdn.com/artworks-000101086514-lgtrqd-t500x500.jpg",scUrl:"https://soundcloud.com/kygo/kygo-firestone-feat-conrad"},
+];
+
+const ALL_ARTISTS = [...new Set(SONGS.map(s=>s.artist))].concat([
+  "David Guetta","Diplo","Hardwell","Armin van Buuren","Swedish House Mafia",
+  "Eric Prydz","Knife Party","Flume","Disclosure","Duke Dumont","Tchami",
+  "Fisher","Chris Lake","John Summit","Fred Again","Four Tet","Peggy Gou",
+  "DJ Snake","Afrojack","Nicky Romero","R3hab","W&W","Alesso","Otto Knows"
+]).sort();
+
+/* ── DAILY SONG ── */
+function getTodayKey(){const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;}
+function seededIdx(seed,max){let h=(seed^0xdeadbeef)>>>0;h=Math.imul(h^h>>>16,0x45d9f3b);h=Math.imul(h^h>>>16,0x45d9f3b);h^=h>>>16;return Math.abs(h)%max;}
+const TODAY_KEY=getTodayKey();
+const todaySong=SONGS[seededIdx(parseInt(TODAY_KEY,10),SONGS.length)];
+
+/* ── LEADERBOARD ── */
+const LB_KEY=`dropguess-lb-${TODAY_KEY}`;
+
+async function loadLeaderboard(listId){
+  const el=document.getElementById(listId);
+  el.innerHTML='<div class="lb-loading">Loading...</div>';
+  try{
+    const res=await window.storage.get(LB_KEY,true);
+    renderLB(el,res?JSON.parse(res.value):[]);
+  }catch(e){renderLB(el,[]);}
+}
+
+function renderLB(el,scores){
+  if(!scores.length){el.innerHTML='<div class="lb-empty">No scores yet today — be the first! 🎯</div>';return;}
+  const sorted=[...scores].sort((a,b)=>a.timeMs-b.timeMs).slice(0,15);
+  el.innerHTML=sorted.map((s,i)=>{
+    const rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    const g=s.guesses===1?'1 guess':`${s.guesses} guesses`;
+    return `<div class="lb-row"><div class="lb-rank ${rc}">${medal}</div><div style="flex:1"><div class="lb-name">${esc(s.name)}</div><div class="lb-meta">${esc(s.track)} · ${g}</div></div><div class="lb-time">${fmtTime(s.timeMs)}</div></div>`;
+  }).join('');
+}
+
+async function saveScore(name,timeMs,guesses){
+  try{
+    let scores=[];
+    try{const r=await window.storage.get(LB_KEY,true);if(r)scores=JSON.parse(r.value);}catch(e){}
+    scores.push({name,timeMs,guesses,track:todaySong.track,artist:todaySong.artist,ts:Date.now()});
+    await window.storage.set(LB_KEY,JSON.stringify(scores),true);
+  }catch(e){console.warn('Save failed',e);}
+}
+
+/* ── STATE ── */
+const MAX_GUESSES=6,SNIPPET_DURATION=30,WAVE_BARS=32;
+let guesses=[],gameOver=false,filteredArtists=[],hlIdx=-1;
+let gameTimerInterval=null,gameStartTime=0,gameElapsedMs=0,gameStopped=false;
+let scWidget=null,isPlaying=false,snippetInterval=null,snippetSeconds=0;
+
+/* ── INIT ── */
+function init(){
+  const d=new Date();
+  document.getElementById('date-pill').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  loadLeaderboard('lb-start-list');
+}
+
+/* ── SCREENS ── */
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');}
+
+/* ── COUNTDOWN ── */
+function startCountdown(){
+  showScreen('countdown');
+  let count=3;
+  const disp=document.getElementById('countdown-display');
+  const lbl=document.getElementById('countdown-label');
+  disp.className='countdown-num';disp.textContent=count;lbl.textContent='Get ready...';
+  const tick=setInterval(()=>{
+    count--;
+    if(count>0){
+      disp.className='';void disp.offsetWidth;disp.className='countdown-num';disp.textContent=count;
+    } else {
+      clearInterval(tick);
+      disp.className='countdown-go';disp.textContent='GO!';lbl.textContent='Listen carefully!';
+      setTimeout(()=>launchGame(),700);
+    }
+  },900);
+}
+
+/* ── LAUNCH ── */
+function launchGame(){
+  const wf=document.getElementById('waveform');wf.innerHTML='';
+  for(let i=0;i<WAVE_BARS;i++){const b=document.createElement('div');b.className='wave-bar';b.style.height=(18+Math.random()*65)+'%';wf.appendChild(b);}
+  renderLives();showScreen('game');
+  const iframe=document.getElementById('sc-iframe');
+  iframe.src=todaySong.scEmbedUrl;
+  document.getElementById('hint-img').src=todaySong.artworkUrl;
+
+  function initWidget(){
+    scWidget=window.SC?window.SC.Widget(iframe):null;
+    if(scWidget){
+      scWidget.bind(window.SC.Widget.Events.READY,()=>{
+        scWidget.setVolume(80);scWidget.play();
+        startSnippetVisual();startGameTimer();
+      });
+    } else {startSnippetVisual();startGameTimer();}
+  }
+
+  if(window.SC){initWidget();}
+  else{const s=document.createElement('script');s.src='https://w.soundcloud.com/player/api.js';s.onload=initWidget;document.head.appendChild(s);}
+}
+
+/* ── GAME TIMER ── */
+function startGameTimer(){gameStartTime=Date.now();gameStopped=false;gameTimerInterval=setInterval(()=>{if(!gameStopped){gameElapsedMs=Date.now()-gameStartTime;document.getElementById('game-timer-val').textContent=fmtTime(gameElapsedMs);}},100);}
+function stopGameTimer(){gameStopped=true;clearInterval(gameTimerInterval);gameElapsedMs=Date.now()-gameStartTime;document.getElementById('game-timer-val').textContent=fmtTime(gameElapsedMs);}
+function fmtTime(ms){const ts=Math.floor(ms/1000),m=Math.floor(ts/60),s=ts%60,t=Math.floor((ms%1000)/100);return `${m}:${String(s).padStart(2,'0')}.${t}`;}
+
+/* ── SNIPPET ── */
+function startSnippetVisual(){
+  isPlaying=true;snippetSeconds=0;
+  document.getElementById('play-pause-btn').textContent='⏸';
+  snippetInterval=setInterval(()=>{
+    snippetSeconds++;
+    const rem=SNIPPET_DURATION-snippetSeconds;
+    document.getElementById('snippet-timer').textContent=`0:${String(Math.max(0,rem)).padStart(2,'0')}`;
+    const prog=snippetSeconds/SNIPPET_DURATION;
+    document.querySelectorAll('.wave-bar').forEach((b,i)=>{
+      const bp=i/WAVE_BARS;b.classList.remove('played','active');
+      if(bp<prog-(1/WAVE_BARS))b.classList.add('played');
+      else if(Math.abs(bp-prog)<(1.5/WAVE_BARS))b.classList.add('active');
+    });
+    if(snippetSeconds>=SNIPPET_DURATION){clearInterval(snippetInterval);isPlaying=false;document.getElementById('play-pause-btn').textContent='▶';}
+  },1000);
+}
+
+function togglePlayPause(){
+  if(isPlaying){
+    isPlaying=false;clearInterval(snippetInterval);
+    document.getElementById('play-pause-btn').textContent='▶';
+    if(scWidget)try{scWidget.pause();}catch(e){}
+  } else {
+    document.getElementById('play-pause-btn').textContent='⏸';
+    if(scWidget)try{scWidget.play();}catch(e){}
+    snippetInterval=setInterval(()=>{
+      snippetSeconds=Math.min(snippetSeconds+1,SNIPPET_DURATION);
+      const rem=SNIPPET_DURATION-snippetSeconds;
+      document.getElementById('snippet-timer').textContent=`0:${String(Math.max(0,rem)).padStart(2,'0')}`;
+      const prog=snippetSeconds/SNIPPET_DURATION;
+      document.querySelectorAll('.wave-bar').forEach((b,i)=>{
+        const bp=i/WAVE_BARS;b.classList.remove('played','active');
+        if(bp<prog-(1/WAVE_BARS))b.classList.add('played');
+        else if(Math.abs(bp-prog)<(1.5/WAVE_BARS))b.classList.add('active');
+      });
+      if(snippetSeconds>=SNIPPET_DURATION){clearInterval(snippetInterval);isPlaying=false;document.getElementById('play-pause-btn').textContent='▶';}
+    },1000);
+    isPlaying=true;
+  }
+}
+
+function replaySnippet(){
+  clearInterval(snippetInterval);snippetSeconds=0;isPlaying=false;
+  document.getElementById('snippet-timer').textContent=`0:${String(SNIPPET_DURATION).padStart(2,'0')}`;
+  document.querySelectorAll('.wave-bar').forEach(b=>b.classList.remove('played','active'));
+  if(scWidget)try{scWidget.seekTo(0);scWidget.play();}catch(e){}
+  startSnippetVisual();
+}
+
+function stopAllPlayback(){clearInterval(snippetInterval);isPlaying=false;if(scWidget)try{scWidget.pause();}catch(e){}}
+
+/* ── LIVES ── */
+function renderLives(){
+  const row=document.getElementById('lives-row');row.innerHTML='';
+  for(let i=0;i<MAX_GUESSES;i++){const d=document.createElement('div');d.className='life'+(i<guesses.length?' lost':'');d.textContent=i<guesses.length?'💀':'🎵';row.appendChild(d);}
+}
+
+/* ── AUTOCOMPLETE ── */
+function onInput(){
+  const val=document.getElementById('guess-input').value.trim().toLowerCase();
+  const list=document.getElementById('autocomplete-list');hlIdx=-1;
+  if(!val){list.classList.remove('open');return;}
+  filteredArtists=ALL_ARTISTS.filter(a=>a.toLowerCase().includes(val));
+  if(!filteredArtists.length){list.classList.remove('open');return;}
+  list.innerHTML='';
+  filteredArtists.slice(0,8).forEach((a)=>{const item=document.createElement('div');item.className='autocomplete-item';item.textContent=a;item.onclick=()=>selectArtist(a);list.appendChild(item);});
+  list.classList.add('open');
+}
+function selectArtist(name){document.getElementById('guess-input').value=name;document.getElementById('autocomplete-list').classList.remove('open');hlIdx=-1;}
+function onKeyDown(e){
+  const list=document.getElementById('autocomplete-list');const items=list.querySelectorAll('.autocomplete-item');
+  if(e.key==='ArrowDown'){e.preventDefault();hlIdx=Math.min(hlIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('hl',i===hlIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();hlIdx=Math.max(hlIdx-1,-1);items.forEach((el,i)=>el.classList.toggle('hl',i===hlIdx));}
+  else if(e.key==='Enter'){hlIdx>=0&&items[hlIdx]?selectArtist(filteredArtists[hlIdx]):submitGuess();}
+  else if(e.key==='Escape'){list.classList.remove('open');}
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.getElementById('autocomplete-list').classList.remove('open');});
+
+/* ── GUESS ── */
+function submitGuess(){
+  if(gameOver)return;
+  const input=document.getElementById('guess-input');const val=input.value.trim();if(!val)return;
+  const correct=val.toLowerCase()===todaySong.artist.toLowerCase();
+  guesses.push({text:val,correct});
+  const history=document.getElementById('guess-history');
+  const pill=document.createElement('div');pill.className='guess-pill';
+  pill.innerHTML=`<div class="gicon ${correct?'correct':'wrong'}">${correct?'✓':'✗'}</div><div class="gtext">${esc(val)}</div><div class="gnum">#${guesses.length}</div>`;
+  history.prepend(pill);
+  renderLives();input.value='';document.getElementById('autocomplete-list').classList.remove('open');
+  if(correct){stopGameTimer();stopAllPlayback();setTimeout(()=>endGame(true),350);}
+  else{
+    input.classList.add('shake');setTimeout(()=>input.classList.remove('shake'),400);
+    if(guesses.length>=MAX_GUESSES){stopGameTimer();stopAllPlayback();document.getElementById('hint-zone').style.display='block';setTimeout(()=>endGame(false),500);}
+    else if(guesses.length>=MAX_GUESSES-1){document.getElementById('hint-zone').style.display='block';}
+  }
+}
+
+/* ── HINT ── */
+function revealHint(){document.getElementById('hint-img').classList.add('revealed');document.getElementById('hint-btn').style.display='none';}
+
+/* ── END GAME ── */
+function endGame(won){
+  gameOver=true;
+  document.getElementById('guess-zone').style.display='none';
+  document.getElementById('hint-zone').style.display='none';
+  const card=document.getElementById('result-card');
+  card.className='result-card '+(won?'win':'lose');
+  document.getElementById('result-emoji').textContent=won?'🎉':'😔';
+  document.getElementById('result-title').textContent=won?`GOT IT IN ${guesses.length}!`:'BETTER LUCK TOMORROW';
+  document.getElementById('result-artist').textContent=todaySong.artist;
+  document.getElementById('result-track').textContent=`"${todaySong.track}"`;
+  document.getElementById('result-img').src=todaySong.artworkUrl;
+  document.getElementById('sc-link').href=todaySong.scUrl;
+  if(won){document.getElementById('result-time').textContent=`⏱ ${fmtTime(gameElapsedMs)}`;document.getElementById('nickname-wrap').style.display='block';}
+  else{document.getElementById('result-time').textContent='';document.getElementById('nickname-wrap').style.display='none';}
+  showScreen('result');loadLeaderboard('lb-result-list');
+}
+
+/* ── SUBMIT SCORE ── */
+async function submitScore(){
+  const nameInput=document.getElementById('nickname-input');const name=nameInput.value.trim();if(!name){nameInput.focus();return;}
+  const btn=document.querySelector('.submit-score-btn');btn.textContent='Saving...';btn.disabled=true;
+  await saveScore(name,gameElapsedMs,guesses.length);
+  document.getElementById('nickname-wrap').innerHTML='<div style="color:var(--green);font-size:0.88rem;font-weight:600;">✓ Score saved — you\'re on the board!</div>';
+  loadLeaderboard('lb-result-list');
+}
+
+/* ── RESET ── */
+function resetToStart(){
+  guesses=[];gameOver=false;gameStopped=false;gameElapsedMs=0;snippetSeconds=0;
+  clearInterval(gameTimerInterval);clearInterval(snippetInterval);
+  document.getElementById('guess-history').innerHTML='';
+  document.getElementById('game-timer-val').textContent='0:00.0';
+  document.getElementById('sc-iframe').src='';
+  showScreen('start');loadLeaderboard('lb-start-list');
+}
+
+/* ── UTILS ── */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+init();
+</script>
+</body>
+</html>
