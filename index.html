@@ -54,13 +54,6 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .play-game-btn { display:inline-flex; align-items:center; gap:10px; padding:16px 40px; background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.05rem; font-weight:700; border:none; border-radius:14px; cursor:pointer; letter-spacing:0.04em; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 0 30px rgba(0,245,212,0.25); }
 .play-game-btn:hover { transform:scale(1.05); box-shadow:0 0 50px rgba(0,245,212,0.4); }
 
-/* COUNTDOWN */
-.countdown-wrap { text-align:center; padding:3rem 0; }
-.countdown-num { font-family:'Bebas Neue',sans-serif; font-size:10rem; line-height:1; background:linear-gradient(135deg,var(--cyan),var(--pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:countPop 0.9s cubic-bezier(0.34,1.56,0.64,1); filter:drop-shadow(0 0 40px rgba(0,245,212,0.4)); }
-.countdown-go { font-family:'Bebas Neue',sans-serif; font-size:6rem; line-height:1; background:linear-gradient(135deg,var(--yellow),var(--orange)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:countPop 0.5s cubic-bezier(0.34,1.56,0.64,1); filter:drop-shadow(0 0 40px rgba(255,230,0,0.5)); }
-@keyframes countPop { from{transform:scale(0.3);opacity:0;} to{transform:scale(1);opacity:1;} }
-.countdown-label { font-size:0.8rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-top:0.5rem; }
-
 /* GAME */
 .game-timer-wrap { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 20px; }
 .game-timer-label { font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); }
@@ -190,28 +183,6 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .autocomplete-list::-webkit-scrollbar,.lb-list::-webkit-scrollbar { width:3px; }
 .autocomplete-list::-webkit-scrollbar-thumb,.lb-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 
-/* Autoplay fallback: browsers block audio until a fresh user gesture */
-.audio-start-overlay{
-  display:none; position:fixed; inset:0; z-index:100;
-  align-items:center; justify-content:center;
-  background:rgba(6,6,15,0.82); backdrop-filter:blur(6px);
-  padding:1.5rem; text-align:center;
-}
-.audio-start-overlay.visible{ display:flex; }
-.audio-start-overlay .inner{
-  max-width:340px; background:var(--card); border:1px solid var(--border);
-  border-radius:18px; padding:1.75rem 1.5rem;
-  box-shadow:0 0 40px rgba(0,245,212,0.12);
-}
-.audio-start-overlay h3{ font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:0.06em; margin-bottom:0.5rem; color:var(--cyan); }
-.audio-start-overlay p{ font-size:0.85rem; color:var(--muted); line-height:1.5; margin-bottom:1.25rem; }
-.audio-start-overlay button{
-  width:100%; padding:14px 20px; border:none; border-radius:12px; cursor:pointer;
-  font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:1rem;
-  background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#000;
-  box-shadow:0 0 24px rgba(0,245,212,0.25);
-}
-.audio-start-overlay button:hover{ transform:scale(1.02); }
 </style>
 </head>
 <body>
@@ -236,13 +207,6 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 
   <!-- GAME -->
   <div class="screen" id="screen-game">
-    <div class="audio-start-overlay" id="audio-start-overlay" aria-hidden="true" role="dialog" aria-labelledby="audio-start-title" aria-modal="true">
-      <div class="inner">
-        <h3 id="audio-start-title">Tap to hear the drop</h3>
-        <p id="audio-start-desc">On iPhone, your tap starts the clip (required by Safari).</p>
-        <button type="button" id="audio-start-btn">▶ Start sound</button>
-      </div>
-    </div>
     <div class="game-timer-wrap">
       <div class="game-timer-label">⏱ Your time</div>
       <div class="game-timer-val" id="game-timer-val">0:00.0</div>
@@ -316,31 +280,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 
 <script>
 /* ── SONGS ── */
-function makeScEmbedUrl(scUrl, autoplay=true){
-  // SoundCloud widget accepts the track URL via the `url=` query param.
-  // `seekTo()` expects milliseconds, but embeds just need the track URL.
+function makeScEmbedUrl(scUrl, autoplay=false){
   const ap=autoplay?'true':'false';
   return `https://w.soundcloud.com/player/?url=${encodeURIComponent(scUrl)}&auto_play=${ap}&hide_related=true&show_comments=false&show_user=false&visual=false`;
-}
-/** Coarse pointers: avoid silent iframe auto_play. */
-function shouldDeferEmbedAutoplay(){
-  try{
-    if(typeof matchMedia!=='undefined'&&matchMedia('(pointer: coarse)').matches)return true;
-  }catch(e){}
-  if(typeof navigator!=='undefined'&&/iPhone|iPod/i.test(navigator.userAgent))return true;
-  return false;
-}
-/** iOS Safari (incl. iPad): play() must run synchronously inside a real touch/click — never from setTimeout/setInterval (e.g. after READY). */
-function isIOSWebKit(){
-  const ua=typeof navigator!=='undefined'?navigator.userAgent||'':'';
-  const iOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  return iOS&&/AppleWebKit/.test(ua)&&!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
-}
-function needsMandatoryTapForAudio(){
-  return shouldDeferEmbedAutoplay()||isIOSWebKit();
-}
-function embedUrlForGame(song){
-  return makeScEmbedUrl(song.scUrl,!needsMandatoryTapForAudio());
 }
 const SONGS = [
   {artist:"Illenium",track:"Broken Ones",scEmbedUrl:makeScEmbedUrl("https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"),artworkUrl:"",scUrl:"https://soundcloud.com/illeniumofficial/illenium-broken-ones-ft-anna-clendening"},
@@ -412,11 +354,10 @@ let playbackFallbackAttempts=0;
 let playbackConfirmed=false;
 let restartSnippetOnPlay=false;
 let currentArtworkUrl='';
-let prewarmedEmbedUrl=null;
 let playGate=false;
 let pendingInitialSeek=false;
-let autoplayWatchdogTimer=null;
 let scWidgetReady=false;
+let startPlaybackRequested=false;
 // SoundCloud widget volume scaling varies by embed; 100 is reliably loud on this widget.
 const SC_VOLUME_LEVEL = 100;
 const DEBUG_SOUND = new URLSearchParams(window.location.search).get('debug') === '1';
@@ -429,58 +370,13 @@ function dbgSound(msg){
   debugSoundEl.textContent = (prev + msg).split('\n').slice(-6).join('\n');
 }
 
-function hideAudioStartOverlay(){
-  const el=document.getElementById('audio-start-overlay');
-  if(el){el.classList.remove('visible');el.setAttribute('aria-hidden','true');}
-}
-function showAudioStartOverlay(){
-  const el=document.getElementById('audio-start-overlay');
-  if(el){el.classList.add('visible');el.setAttribute('aria-hidden','false');}
-}
-function clearAutoplayWatchdog(){
-  if(autoplayWatchdogTimer){clearTimeout(autoplayWatchdogTimer);autoplayWatchdogTimer=null;}
-}
-function scheduleAutoplayWatchdog(){
-  clearAutoplayWatchdog();
-  const ms=(typeof matchMedia!=='undefined'&&matchMedia('(pointer:coarse)').matches)?400:650;
-  autoplayWatchdogTimer=setTimeout(()=>{
-    autoplayWatchdogTimer=null;
-    if(playbackConfirmed)return;
-    showAudioStartOverlay();
-  },ms);
-}
 function unlockMobileAudio(){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC)return;
     const ctx=new AC();
-    const buf=ctx.createBuffer(1,1,22050);
-    const src=ctx.createBufferSource();
-    src.buffer=buf;
-    src.connect(ctx.destination);
-    src.start(0);
     if(ctx.state==='suspended')ctx.resume();
   }catch(e){}
-}
-
-function userGestureStartAudio(){
-  if(playbackConfirmed){
-    hideAudioStartOverlay();
-    return;
-  }
-  unlockMobileAudio();
-  clearAutoplayWatchdog();
-  if(!scWidget||!scWidgetReady){
-    dbgSound('tap before widget READY — keep overlay');
-    return;
-  }
-  hideAudioStartOverlay();
-  try{
-    scWidget.setVolume(SC_VOLUME_LEVEL);
-    pendingSeekToStart=true;
-    scWidget.play();
-    requestAnimationFrame(()=>{try{scWidget.play();}catch(e){}});
-  }catch(e){showAudioStartOverlay();}
 }
 
 function fallbackToNextSong(){
@@ -566,22 +462,8 @@ async function runTrackHealthCheck(){
 function init(){
   const d=new Date();
   document.getElementById('date-pill').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  const audioOv=document.getElementById('audio-start-overlay');
-  const descEl=document.getElementById('audio-start-desc');
-  if(descEl)descEl.textContent=needsMandatoryTapForAudio()
-    ?'On iPhone/iPad, Safari needs one tap here to start sound — then the game runs as normal.'
-    :'Sound didn’t start automatically. Tap below (or anywhere here) to play.';
-  if(audioOv){
-    audioOv.addEventListener('click',userGestureStartAudio);
-    audioOv.addEventListener('touchend',e=>{e.preventDefault();userGestureStartAudio();},{passive:false});
-  }
-  const audioStartBtn=document.getElementById('audio-start-btn');
-  if(audioStartBtn)audioStartBtn.addEventListener('click',e=>{e.stopPropagation();userGestureStartAudio();});
   const playTodayBtn=document.getElementById('play-today-btn');
-  if(playTodayBtn){
-    playTodayBtn.addEventListener('pointerdown',beginPlayWithAudio,{passive:true});
-    playTodayBtn.addEventListener('click',beginPlayWithAudio);
-  }
+  if(playTodayBtn)playTodayBtn.addEventListener('click',beginPlayWithAudio);
   if(HEALTHCHECK_MODE){runTrackHealthCheck();}
 }
 
@@ -593,25 +475,14 @@ function beginPlayWithAudio(){
   if(playGate)return;
   playGate=true;
   unlockMobileAudio();
+  startPlaybackRequested=true;
   const btn=document.getElementById('play-today-btn');
-  if(btn){btn.disabled=true;}
-  const url=embedUrlForGame(SONGS[initialSongIdx]);
-  prewarmedEmbedUrl=url;
-  const iframe=document.getElementById('sc-iframe');
-  iframe.src=url;
-  if(!window.SC&&!document.querySelector('script[data-sc-api="1"]')){
-    const s=document.createElement('script');
-    s.src='https://w.soundcloud.com/player/api.js';
-    s.dataset.scApi='1';
-    document.head.appendChild(s);
-  }
+  if(btn)btn.disabled=true;
   launchGame();
 }
 
 /* ── LAUNCH ── */
 function launchGame(){
-  hideAudioStartOverlay();
-  clearAutoplayWatchdog();
   playbackFallbackAttempts=0;
   currentSongIdx=initialSongIdx;
   currentSong=SONGS[currentSongIdx];
@@ -623,12 +494,10 @@ function launchGame(){
   const wf=document.getElementById('waveform');wf.innerHTML='';
   for(let i=0;i<WAVE_BARS;i++){const b=document.createElement('div');b.className='wave-bar';b.style.height=(18+Math.random()*65)+'%';wf.appendChild(b);}
   renderLives();showScreen('game');
-  if(needsMandatoryTapForAudio())showAudioStartOverlay();
   document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
-  const targetEmbed=embedUrlForGame(currentSong);
-  if(!(prewarmedEmbedUrl===targetEmbed&&iframe.src))iframe.src=targetEmbed;
-  prewarmedEmbedUrl=null;
+  const targetEmbed=currentSong.scEmbedUrl;
+  if(iframe.src!==targetEmbed)iframe.src=targetEmbed;
   document.getElementById('hint-img').src=currentArtworkUrl;
 
   function initWidget(){
@@ -645,7 +514,7 @@ function launchGame(){
         if(pendingSeekToStart){
           pendingSeekToStart=false;
           pendingInitialSeek=true;
-          const seekDelayMs=needsMandatoryTapForAudio()?0:200;
+          const seekDelayMs=120;
           setTimeout(()=>{
             try{
               scWidget.getDuration((durMs)=>{
@@ -654,20 +523,11 @@ function launchGame(){
                 dbgSound(`PLAY -> seekTo ${safeStart}ms (dur=${durMs}ms)`);
                 try{scWidget.play();}catch(e4){}
                 requestAnimationFrame(()=>{try{scWidget.play();}catch(e5){}});
-                if(!needsMandatoryTapForAudio()){
-                  try{scWidget.pause();}catch(e6){}
-                  setTimeout(()=>{
-                    try{scWidget.play();}catch(e7){}
-                    requestAnimationFrame(()=>{try{scWidget.play();}catch(e8){}});
-                  },50);
-                }
                 pendingInitialSeek=false;
                 if(isReplayRestart){
                   startSnippetVisual();
                 }else if(!playbackConfirmed){
                   playbackConfirmed=true;
-                  hideAudioStartOverlay();
-                  clearAutoplayWatchdog();
                   startSnippetVisual();
                   startGameTimer();
                 }
@@ -679,8 +539,6 @@ function launchGame(){
                 startSnippetVisual();
               }else if(!playbackConfirmed){
                 playbackConfirmed=true;
-                hideAudioStartOverlay();
-                clearAutoplayWatchdog();
                 startSnippetVisual();
                 startGameTimer();
               }
@@ -702,8 +560,6 @@ function launchGame(){
         }
         if(!playbackConfirmed){
           playbackConfirmed=true;
-          hideAudioStartOverlay();
-          clearAutoplayWatchdog();
           startSnippetVisual();
           startGameTimer();
         }else if(!isPlaying){
@@ -730,17 +586,15 @@ function launchGame(){
           });
         }catch(e){}
         pendingSeekToStart=true;
-        if(!needsMandatoryTapForAudio()){
-          scWidget.play();
+        if(startPlaybackRequested){
+          startPlaybackRequested=false;
+          try{scWidget.play();}catch(e){}
           requestAnimationFrame(()=>{try{scWidget.play();}catch(e){}});
         }
-        scheduleAutoplayWatchdog();
       });
       scWidget.bind(window.SC.Widget.Events.ERROR,()=>{
         dbgSound('ERROR event');
         if(fallbackToNextSong()){
-          hideAudioStartOverlay();
-          clearAutoplayWatchdog();
           pendingSeekToStart=false;
           pendingInitialSeek=false;
           scWidgetReady=false;
@@ -748,12 +602,10 @@ function launchGame(){
           clearInterval(snippetInterval);
           isPlaying=false;
           const iframeEl=document.getElementById('sc-iframe');
-          iframeEl.src=embedUrlForGame(currentSong);
+          iframeEl.src=currentSong.scEmbedUrl;
           document.getElementById('hint-img').src=currentArtworkUrl||'';
-          setTimeout(()=>{
-            initWidget();
-            if(needsMandatoryTapForAudio())showAudioStartOverlay();
-          },300);
+          startPlaybackRequested=true;
+          setTimeout(()=>{initWidget();},300);
         }
       });
     } else {startSnippetVisual();startGameTimer();}
@@ -945,15 +797,13 @@ function resetToStart(){
   playbackConfirmed=false;
   currentSongIdx=initialSongIdx;
   currentSong=SONGS[currentSongIdx];
-  hideAudioStartOverlay();
-  clearAutoplayWatchdog();
   clearInterval(gameTimerInterval);clearInterval(snippetInterval);
   document.getElementById('guess-history').innerHTML='';
   document.getElementById('game-timer-val').textContent='0:00.0';
   document.getElementById('sc-iframe').src='';
-  prewarmedEmbedUrl=null;
   playGate=false;
   scWidgetReady=false;
+  startPlaybackRequested=false;
   const pt=document.getElementById('play-today-btn');
   if(pt){pt.disabled=false;}
   showScreen('start');
