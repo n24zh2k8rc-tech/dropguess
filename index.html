@@ -41,6 +41,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .screen { display:none; width:100%; flex-direction:column; align-items:center; gap:1.25rem; }
 .screen.active { display:flex; }
 #screen-start { gap:0.85rem; }
+#screen-game { flex:1; }
 
 /* START */
 .start-card { width:100%; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:2.5rem 2rem; text-align:center; position:relative; overflow:hidden; }
@@ -142,6 +143,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .autocomplete-item:last-child { border-bottom:none; }
 .autocomplete-item:hover,.autocomplete-item.hl { background:rgba(0,245,212,0.08); color:var(--cyan); }
 .guess-history { width:100%; display:flex; flex-direction:column; gap:7px; }
+.fastest-daily-wrap { margin-top:auto; width:100%; text-align:center; padding-bottom:0.65rem; }
+.fastest-daily-label { font-size:0.65rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); }
+.fastest-daily-value { font-family:'Bebas Neue',sans-serif; font-size:1.55rem; letter-spacing:0.05em; color:var(--yellow); margin-top:3px; }
 .guess-pill { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 13px; animation:slideIn 0.28s ease; }
 @keyframes slideIn { from{opacity:0;transform:translateY(-7px);} to{opacity:1;transform:translateY(0);} }
 .gicon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
@@ -185,6 +189,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 .lb-list { padding:0.5rem 0; max-height:280px; overflow-y:auto; }
 .lb-row { display:flex; align-items:center; gap:10px; padding:9px 1.25rem; transition:background 0.15s; }
 .lb-row:hover { background:rgba(255,255,255,0.02); }
+.lb-row.lb-you { background:rgba(0,245,212,0.06); }
 .lb-rank { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; min-width:28px; text-align:center; }
 .lb-rank.r1 { color:var(--gold); }
 .lb-rank.r2 { color:var(--silver); }
@@ -298,6 +303,10 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
       </div>
     </div>
     <div class="guess-history" id="guess-history"></div>
+    <div class="fastest-daily-wrap" id="fastest-daily-wrap">
+      <div class="fastest-daily-label">FASTEST DAILY</div>
+      <div class="fastest-daily-value" id="fastest-daily-val">—</div>
+    </div>
   </div>
 
   <!-- RESULT -->
@@ -404,34 +413,91 @@ let currentSong=SONGS[currentSongIdx];
 /* ── LEADERBOARD ── */
 const LB_KEY=`dropguess-lb-${TODAY_KEY}`;
 
+// Some deployments may not define `window.storage`. Fall back to `localStorage` so scores persist.
+const storage = (() => {
+  const s = (typeof window !== 'undefined') ? window.storage : null;
+  if(s && typeof s.get === 'function' && typeof s.set === 'function') return s;
+  return {
+    async get(key){
+      try{
+        if(typeof localStorage === 'undefined') return null;
+        const v = localStorage.getItem(key);
+        return v === null ? null : { value: v };
+      }catch(e){ return null; }
+    },
+    async set(key, value){
+      try{
+        if(typeof localStorage === 'undefined') return;
+        localStorage.setItem(key, value);
+      }catch(e){}
+    }
+  };
+})();
+
 async function loadLeaderboard(listId){
   const el=document.getElementById(listId);
   el.innerHTML='<div class="lb-loading">Loading...</div>';
   try{
-    const res=await window.storage.get(LB_KEY,true);
+    const res=await storage.get(LB_KEY,true);
     renderLB(el,res?JSON.parse(res.value):[]);
   }catch(e){renderLB(el,[]);}
 }
 
-function renderLB(el,scores){
-  if(!scores.length){el.innerHTML='<div class="lb-empty">No scores yet today — be the first! 🎯</div>';return;}
-  const sorted=[...scores].sort((a,b)=>a.timeMs-b.timeMs).slice(0,15);
-  el.innerHTML=sorted.map((s,i)=>{
+function renderLB(el,scores,highlightTs=null){
+  if(!scores.length){
+    el.innerHTML='<div class="lb-empty">No scores yet today — be the first! 🎯</div>';
+    return;
+  }
+
+  const sortedAll=[...scores].sort((a,b)=>a.timeMs-b.timeMs);
+  const top=sortedAll.slice(0,15);
+  const highlight = highlightTs!=null ? sortedAll.find(s=>s.ts===highlightTs) : null;
+  const topHasHighlight = highlight && top.some(s=>s.ts===highlightTs);
+
+  const rows=top.map((s,i)=>{
     const rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
     const g=s.guesses===1?'1 guess':`${s.guesses} guesses`;
     return `<div class="lb-row"><div class="lb-rank ${rc}">${medal}</div><div style="flex:1"><div class="lb-name">${esc(s.name)}</div><div class="lb-meta">${esc(s.track)} · ${g}</div></div><div class="lb-time">${fmtTime(s.timeMs)}</div></div>`;
-  }).join('');
+  });
+
+  // If the user's entry isn't in the top-15, still show it so they can confirm their submission.
+  if(highlight && !topHasHighlight){
+    const g=highlight.guesses===1?'1 guess':`${highlight.guesses} guesses`;
+    rows.push(
+      `<div class="lb-row lb-you">`+
+      `<div class="lb-rank rn">YOU</div>`+
+      `<div style="flex:1"><div class="lb-name">${esc(highlight.name)}</div><div class="lb-meta">${esc(highlight.track)} · ${g}</div></div>`+
+      `<div class="lb-time">${fmtTime(highlight.timeMs)}</div>`+
+      `</div>`
+    );
+  }
+
+  el.innerHTML=rows.join('');
 }
 
 async function saveScore(name,timeMs,guesses){
   try{
     let scores=[];
-    try{const r=await window.storage.get(LB_KEY,true);if(r)scores=JSON.parse(r.value);}catch(e){}
-    scores.push({name,timeMs,guesses,track:currentSong.track,artist:currentSong.artist,ts:Date.now()});
-    await window.storage.set(LB_KEY,JSON.stringify(scores),true);
-    return scores;
+    try{const r=await storage.get(LB_KEY,true);if(r)scores=JSON.parse(r.value);}catch(e){}
+    const entry={name,timeMs,guesses,track:currentSong.track,artist:currentSong.artist,ts:Date.now()};
+    scores.push(entry);
+    await storage.set(LB_KEY,JSON.stringify(scores),true);
+    return { scores, entry };
   }catch(e){console.warn('Save failed',e);return null;}
+}
+
+async function updateFastestDailyValue(){
+  const el=document.getElementById('fastest-daily-val');
+  if(!el) return;
+  el.textContent='—';
+  try{
+    const r=await storage.get(LB_KEY,true);
+    const scores=r?JSON.parse(r.value):[];
+    if(!scores.length){el.textContent='—';return;}
+    const fastest=Math.min(...scores.map(s=>s.timeMs));
+    el.textContent=fmtTime(fastest);
+  }catch(e){el.textContent='—';}
 }
 
 /* ── STATE ── */
@@ -705,6 +771,7 @@ function launchGame(){
   document.getElementById('game-timer-val').textContent='0:00.0';
   renderLives();
   showScreen('game');
+  updateFastestDailyValue();
   startGameTimer();
   if(needsMandatoryTapForAudio()&&isIOSWebKit()&&!isMobileTablet())showAudioStartOverlay();
   document.getElementById('play-pause-btn').textContent='▶';
@@ -1058,10 +1125,10 @@ function endGame(won){
 async function submitScore(){
   const nameInput=document.getElementById('nickname-input');const name=nameInput.value.trim();if(!name){nameInput.focus();return;}
   const btn=document.querySelector('.submit-score-btn');btn.textContent='Saving...';btn.disabled=true;
-  const scores=await saveScore(name,gameElapsedMs,guesses.length);
+  const saved=await saveScore(name,gameElapsedMs,guesses.length);
   document.getElementById('nickname-wrap').innerHTML='<div style="color:var(--green);font-size:0.88rem;font-weight:600;">✓ Score saved — you\'re on the board!</div>';
   const lbEl=document.getElementById('lb-result-list');
-  if(scores)renderLB(lbEl,scores);
+  if(saved)renderLB(lbEl,saved.scores,saved.entry.ts);
   else await loadLeaderboard('lb-result-list');
 }
 
