@@ -110,18 +110,18 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
 }
 @media (max-width:900px){
   #sc-iframe{
-    position:relative;
-    left:auto;
-    top:auto;
-    width:100%;
-    height:72px;
-    margin-top:0.5rem;
-    opacity:0.07;
+    position:absolute;
+    left:-9999px;
+    top:-9999px;
+    width:1px;
+    height:1px;
+    opacity:0;
+    margin:0;
     border:0;
-    border-radius:8px;
+    border-radius:0;
   }
   #sc-iframe.sc-iframe-ios{
-    opacity:0.9 !important;
+    opacity:0.001 !important;
   }
 }
 
@@ -236,7 +236,7 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
       <div class="date-pill" id="date-pill"></div>
       <div class="start-disc"><div class="start-disc-inner">🎵</div></div>
       <div class="start-title">Daily EDM Challenge</div>
-      <div class="start-desc">A <span class="nobreak">30-second</span> EDM snippet will play. Guess the artist before your 3 lives run out. Your timer starts the moment the music drops — fastest wins.</div>
+      <div class="start-desc">A <span class="nobreak">30-second</span> EDM snippet will play. Guess the artist before your 3 lives run out.</div>
       <button type="button" class="play-game-btn" id="play-today-btn">▶ &nbsp;Play Today's Drop</button>
     </div>
   </div>
@@ -264,8 +264,8 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
     </div>
     <div class="lives-row" id="lives-row"></div>
     <div class="player-card">
-      <div class="player-inner">
-        <div class="snippet-label">🎧 <span class="nobreak">30-second</span> snippet — who made this?</div>
+        <div class="player-inner">
+        <div class="snippet-label">Press play to begin track. You may have to tap a few times to hear audio.</div>
         <div class="waveform-row">
           <div class="waveform" id="waveform"></div>
           <div class="snippet-timer" id="snippet-timer">0:30</div>
