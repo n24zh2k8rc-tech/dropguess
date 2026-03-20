@@ -264,8 +264,9 @@ header { text-align:center; width:100%; max-width:100%; padding:0 0.75rem; box-s
         </div>
         <div class="lb-list" id="lb-start-list"><div class="lb-loading">Loading scores...</div></div>
       </div>
+      <button class="share-btn" type="button" id="share-btn-start" onclick="shareChallenge()">↗ Share Challenge</button>
     </div>
-    <div class="date-pill date-pill--daily">NEW CHALLENGE DAILY.</div>
+    <div class="date-pill date-pill--daily">NEW CHALLENGE EVERYDAY</div>
   </div>
 
   <!-- COUNTDOWN -->
@@ -1279,13 +1280,13 @@ function getShareUrl(){
 
 async function shareChallenge(){
   const btn=document.getElementById('share-btn');
-  if(btn){btn.textContent='Sharing...';btn.disabled=true;}
+  const btn2=document.getElementById('share-btn-start');
+  const activeBtn=btn||btn2;
+  if(activeBtn){activeBtn.textContent='Sharing...';activeBtn.disabled=true;}
 
   const dayLabel=formatDayKeyLabel(TODAY_KEY);
-  // result-time is only filled when you win, but `gameElapsedMs` is still available for a general message.
-  const myTime=fmtTime(gameElapsedMs);
   const url=getShareUrl();
-  const shareText=`Drop Guess: Daily EDM Challenge (${dayLabel}). I finished in ${myTime}. Can you beat me?`;
+  const shareText=`Drop Guess: Daily EDM Challenge (${dayLabel}). I played today and added my score to the leaderboard. Can you beat me?`;
 
   try{
     if(navigator.share){
@@ -1299,10 +1300,10 @@ async function shareChallenge(){
     const ok=await copyText(url);
     if(ok && btn) btn.textContent='Link copied!';
   }finally{
-    if(btn){
+    if(activeBtn){
       setTimeout(()=>{
-        btn.disabled=false;
-        btn.textContent='↗ Share Challenge';
+        activeBtn.disabled=false;
+        activeBtn.textContent='↗ Share Challenge';
       },900);
     }
   }
