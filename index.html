@@ -347,6 +347,15 @@ function isIOSWebKit(){
 function needsMandatoryTapForAudio(){
   return shouldDeferEmbedAutoplay()||isIOSWebKit();
 }
+function isMobileTablet(){
+  try{
+    if(typeof matchMedia!=='undefined'&&matchMedia('(pointer: coarse)').matches)return true;
+  }catch(e){}
+  try{
+    if(typeof navigator!=='undefined'&&/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent))return true;
+  }catch(e){}
+  return false;
+}
 function embedUrlForGame(song){
   return makeScEmbedUrl(song.scUrl,!needsMandatoryTapForAudio());
 }
@@ -450,6 +459,7 @@ function clearAutoplayWatchdog(){
   if(autoplayWatchdogTimer){clearTimeout(autoplayWatchdogTimer);autoplayWatchdogTimer=null;}
 }
 function scheduleAutoplayWatchdog(){
+  if(isMobileTablet())return; // No "start sound" overlay / autoplay hints on touch devices.
   clearAutoplayWatchdog();
   const ms=(typeof matchMedia!=='undefined'&&matchMedia('(pointer:coarse)').matches)?400:650;
   autoplayWatchdogTimer=setTimeout(()=>{
@@ -653,7 +663,7 @@ function launchGame(){
   const wf=document.getElementById('waveform');wf.innerHTML='';
   for(let i=0;i<WAVE_BARS;i++){const b=document.createElement('div');b.className='wave-bar';b.style.height=(18+Math.random()*65)+'%';wf.appendChild(b);}
   renderLives();showScreen('game');
-  if(needsMandatoryTapForAudio())showAudioStartOverlay();
+  if(!isMobileTablet()&&needsMandatoryTapForAudio())showAudioStartOverlay();
   document.getElementById('play-pause-btn').textContent='▶';
   const iframe=document.getElementById('sc-iframe');
   const targetEmbed=embedUrlForGame(currentSong);
@@ -675,22 +685,27 @@ function launchGame(){
         if(pendingSeekToStart){
           pendingSeekToStart=false;
           pendingInitialSeek=true;
-          const seekDelayMs=needsMandatoryTapForAudio()?0:200;
-          setTimeout(()=>{
+          const runSeek=()=>{
             try{
               scWidget.getDuration((durMs)=>{
                 const safeStart=Math.min(SNIPPET_START_MS,Math.max(0,durMs-(SNIPPET_DURATION*1000)));
                 try{scWidget.seekTo(safeStart);}catch(e2){}
                 dbgSound(`PLAY -> seekTo ${safeStart}ms (dur=${durMs}ms)`);
-                try{scWidget.play();}catch(e4){}
-                requestAnimationFrame(()=>{try{scWidget.play();}catch(e5){}});
-                if(!needsMandatoryTapForAudio()){
+
+                // iOS fix: seeking can effectively leave the widget "playing" but with no audible output.
+                // Call `play()` synchronously once after `seekTo()` to re-arm audio on iPhone Safari.
+                if(needsMandatoryTapForAudio()){
+                  try{scWidget.play();}catch(e4){}
+                } else {
+                  try{scWidget.play();}catch(e4){}
+                  requestAnimationFrame(()=>{try{scWidget.play();}catch(e5){}});
                   try{scWidget.pause();}catch(e6){}
                   setTimeout(()=>{
                     try{scWidget.play();}catch(e7){}
                     requestAnimationFrame(()=>{try{scWidget.play();}catch(e8){}});
                   },50);
                 }
+
                 pendingInitialSeek=false;
                 if(isReplayRestart){
                   startSnippetVisual();
@@ -715,7 +730,11 @@ function launchGame(){
                 startGameTimer();
               }
             }
-          },seekDelayMs);
+          };
+
+          // Avoid setTimeout even with 0ms on iOS; keep this closer to the user tap path.
+          if(needsMandatoryTapForAudio())runSeek();
+          else setTimeout(runSeek,200);
           try{
             scWidget.getVolume(v=>dbgSound(`widget volume=${v}`));
             scWidget.getPosition(p=>dbgSound(`widget position=${p}ms`));
@@ -782,7 +801,7 @@ function launchGame(){
           document.getElementById('hint-img').src=currentArtworkUrl||'';
           setTimeout(()=>{
             initWidget();
-            if(needsMandatoryTapForAudio())showAudioStartOverlay();
+            if(!isMobileTablet()&&needsMandatoryTapForAudio())showAudioStartOverlay();
           },300);
         }
       });
