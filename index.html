@@ -950,7 +950,8 @@ function launchGame(){
           };
 
           // iOS: for the initial start (not replay), avoid seekTo() to prevent silent audio.
-          if(needsMandatoryTapForAudio() && !isReplayRestart){
+          // Keep this iOS-only; Android should use the normal seek flow.
+          if(isIOSWebKit() && needsMandatoryTapForAudio() && !isReplayRestart){
             pendingInitialSeek=false;
             // Mimic the manual "pause -> play" gesture fix on iPhone Safari.
             try{scWidget.setVolume(SC_VOLUME_LEVEL);}catch(eIv){}
@@ -1138,7 +1139,6 @@ function togglePlayPause(){
   } else {
     // If the snippet already finished, replay from 00:45.
     if(snippetSeconds>=SNIPPET_DURATION){replaySnippet();return;}
-    pendingSeekToStart=false;
     if(scWidget)try{scWidget.setVolume(SC_VOLUME_LEVEL);scWidget.play();}catch(e){}
     document.getElementById('play-pause-btn').textContent='⏸';
   }
