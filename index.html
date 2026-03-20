@@ -452,7 +452,12 @@ let dailyLockedToday=false;
 
 async function isDailyLocked(){
   try{
-    const r=await storage.get(PLAYED_KEY,true);
+    const p=storage.get(PLAYED_KEY,true);
+    // Prevent the UI from getting stuck disabled if an async storage call never resolves.
+    const r=await Promise.race([
+      Promise.resolve(p),
+      new Promise(resolve=>setTimeout(()=>resolve(null),250))
+    ]);
     return !!r;
   }catch(e){ return false; }
 }
@@ -741,7 +746,10 @@ function init(){
   }
   const playTodayBtn=document.getElementById('play-today-btn');
   if(playTodayBtn){
-    playTodayBtn.disabled=true; // unlocked below after daily flag check
+    // Optimistically allow play; we'll lock it if the daily flag is present.
+    playTodayBtn.disabled=false;
+    dailyLockedToday=false;
+    applyDailyLockUI();
     playTodayBtn.addEventListener('pointerdown',beginPlayWithAudio,{passive:true});
     playTodayBtn.addEventListener('click',beginPlayWithAudio);
     isDailyLocked().then(locked=>{
